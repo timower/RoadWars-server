@@ -2,6 +2,8 @@ import asyncio
 import json
 import sqlite3
 import random
+    
+# {"req": "login", "user": "<user name>", "pass": "password"}
 
 class EchoServerClientProtocol(asyncio.Protocol):
     def connection_made(self, transport):
@@ -12,6 +14,8 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
+        print(message)
+        print('---')
         obj = json.loads(message)
         if "req" in obj:
             request = obj['req']
@@ -19,11 +23,11 @@ class EchoServerClientProtocol(asyncio.Protocol):
                 # TODO: check for user  and pass
                 key = usermgr.login(obj["user"], obj["pass"])
                 if key is None:
-                    response = {"res": "ERR"}
-                    self.transport.write(json.dumps(response).encode())
+                    response = {"res":  False, "req": "login"}
                 else:
-                    response = {"res": "OK", "key": key}
-                    self.transport.write(json.dumps(response).encode())
+                    response = {"res": True, "req": "login", "key": key}
+                self.transport.write(json.dumps(response).encode())
+                self.transport.write("\n".encode())
             elif request == "logout":
                 # check key
                 # logout
@@ -53,6 +57,16 @@ class EchoServerClientProtocol(asyncio.Protocol):
                 # add points
                 # return ok / err
                 pass
+            elif request == "check-login":
+                if "key" in obj and "user" in obj:
+                    if obj["user"] in usermgr.keys and usermgr.keys[obj["user"]] == obj["key"]:
+                        response = {"res": True, "req": "check-login"}
+                    else:
+                        response = {"res": False, "req": "check-login"}
+                    resobj = json.dumps(response)
+                    self.transport.write(resobj.encode())
+                    self.transport.write("\n".encode())
+
 
     def connection_lost(self, exc):
         print('Connection lost from {}'.format(self.peername))
@@ -79,11 +93,12 @@ class ChatServer:
 
     def run(self):
         # Each client connection will create a new protocol instance
-        coro = loop.create_server(EchoServerClientProtocol, '127.0.0.1', 4444)
+        coro = loop.create_server(EchoServerClientProtocol, self.host, self.port)
         server = loop.run_until_complete(coro)
 
         # Serve requests until Ctrl+C is pressed
         print('Serving on {}'.format(server.sockets[0].getsockname()))
+
         try:
             loop.run_forever()
         except KeyboardInterrupt:
@@ -136,6 +151,6 @@ db = sqlite3.connect('test.db')
 usermgr = UserManager(db)
 
 loop = asyncio.get_event_loop()
-server = ChatServer(loop, "127.0.0.1", 4444)
+server = ChatServer(loop, "0.0.0.0", 4444)
 server.run()
 db.close()
