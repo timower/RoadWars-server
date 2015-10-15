@@ -14,41 +14,45 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
-        print(message)
-        print('---')
+        print("received: " + message)
         obj = json.loads(message)
+
+        response = {"res": False}
+
         if "req" in obj:
+
             request = obj['req']
-            if request == "login":
-                # TODO: check for user  and pass
+            response["req"] = request
+
+            if request == "login" and "user" in obj and "pass" in obj:
                 key = usermgr.login(obj["user"], obj["pass"])
                 if key is None:
                     response = {"res":  False, "req": "login"}
                 else:
                     response = {"res": True, "req": "login", "key": key}
-                self.transport.write(json.dumps(response).encode())
-                self.transport.write("\n".encode())
-            elif request == "logout":
+            elif request == "logout" and "user" in obj and "key" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    usermgr.logout(obj["user"])
+                    response["res"] = True
+            elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj:
+                response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"])
+            elif request == "user-info" and "user" in obj and "key" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    info = usermgr.get_info(obj["user"])
+                    if info is not None:
+                        response["res"] = True
+                        response["email"] = info["email"]
+            elif request == "street-rank" and "street" in obj and "user" in obj and "key" in obj:
                 # check key
-                # logout
-                # return ok / err
-                pass
-            elif request == "create-user":
-                # add user
-                # check ret
-                # return err / ok
-                pass
-            elif request == "user-info":
-                # check key
-                # return info
-                pass
-            elif request == "street-rank":
-                # check key
-                # get rank
+                # get top 10 in street
                 # form message
                 # return
                 pass
-            elif request == "add-points":
+            elif request == "get-points" and "street" in obj and "user" in obj and "key" in obj:
+                pass
+            elif request == "get-all-points" and "user" in obj and "key" in obj:
+                pass
+            elif request == "add-points" and "points" in obj and "user" in obj and "key" in obj:
                 # get user
                 # get street
                 # get key
@@ -57,20 +61,18 @@ class EchoServerClientProtocol(asyncio.Protocol):
                 # add points
                 # return ok / err
                 pass
-            elif request == "check-login":
-                if "key" in obj and "user" in obj:
-                    if obj["user"] in usermgr.keys and usermgr.keys[obj["user"]] == obj["key"]:
-                        response = {"res": True, "req": "check-login"}
-                    else:
-                        response = {"res": False, "req": "check-login"}
-                    resobj = json.dumps(response)
-                    self.transport.write(resobj.encode())
-                    self.transport.write("\n".encode())
-
+            elif request == "check-login" and "key" in obj and "user" in obj:
+                response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
+        self.respond(response)
 
     def connection_lost(self, exc):
         print('Connection lost from {}'.format(self.peername))
         server.remove_client(self.transport)
+
+    def respond(self, obj):
+        st = json.dumps(obj)
+        self.transport.write(st.encode())
+        self.transport.write("\n".encode())
 
 class ChatServer:
     def __init__(self, loop, host, port):
@@ -114,6 +116,17 @@ class UserManager:
         self.db = db
         self.keys = {}
 
+    def create_user(self, user, pasw, email):
+        #INSERT INTO `users`(`id`,`name`,`password`,`email`) VALUES (3,'','','');
+        t = (user, pasw, email)
+        # TODO: catch sqlite error and return false
+        try:
+            db.execute("INSERT INTO users (name, password, email) VALUES (?, ?, ?)", t)
+            db.commit()
+        except sqlite3.IntegrityError as e:
+            return False
+        return True
+
     def login(self, user, pasw):
         # get user from database
         # check password
@@ -135,11 +148,22 @@ class UserManager:
     def logout(self, user):
         # remove user from keys
         self.keys.pop(user)
-        pass
         
     def check(self, user, key):
         # get key from keys
+        if user not in self.keys:
+            return False
         return self.keys[user] == key
+
+    def get_info(self, user):
+        ret = {}
+        t = (user,)
+        c = db.execute("SELECT email FROM users WHERE name=?", t)
+        l = c.fetchall()
+        if len(l) != 1:
+            return None
+        ret["email"] = l[0][0]
+        return ret
 
     def get_rank(self, street):
         # get rankings in street from database
