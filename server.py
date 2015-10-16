@@ -47,6 +47,7 @@ class EchoServerClientProtocol(asyncio.Protocol):
                         response["res"] = True
                         response["email"] = info["email"]
                         response["color"] = info["color"]
+                        response["user"] = obj["user"]
             # street rank
             elif request == "street-rank" and "street" in obj and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
