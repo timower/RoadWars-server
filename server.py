@@ -24,43 +24,49 @@ class EchoServerClientProtocol(asyncio.Protocol):
             request = obj['req']
             response["req"] = request
 
+            # login:
             if request == "login" and "user" in obj and "pass" in obj:
                 key = usermgr.login(obj["user"], obj["pass"])
                 if key is None:
                     response = {"res":  False, "req": "login"}
                 else:
                     response = {"res": True, "req": "login", "key": key}
+            # logout:
             elif request == "logout" and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
                     usermgr.logout(obj["user"])
                     response["res"] = True
+            # create user:
             elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj:
                 response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"])
+            # user info:
             elif request == "user-info" and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
                     info = usermgr.get_info(obj["user"])
                     if info is not None:
                         response["res"] = True
                         response["email"] = info["email"]
+                        response["color"] = info["color"]
+            # street rank
             elif request == "street-rank" and "street" in obj and "user" in obj and "key" in obj:
-                # check key
-                # get top 10 in street
-                # form message
-                # return
-                pass
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["res"] = True
+                    response["rank"] = usermgr.get_rank(obj["street"])
+            # get points
             elif request == "get-points" and "street" in obj and "user" in obj and "key" in obj:
-                pass
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["res"] = True
+                    response["points"] = usermgr.get_points(obj["user"], obj["street"])
+            # get all points (of user)
             elif request == "get-all-points" and "user" in obj and "key" in obj:
-                pass
-            elif request == "add-points" and "points" in obj and "user" in obj and "key" in obj:
-                # get user
-                # get street
-                # get key
-                # get points
-                # check key
-                # add points
-                # return ok / err
-                pass
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["res"] = True
+                    response["points"] = usermgr.get_all_points(obj["user"])
+            # add points
+            elif request == "add-points" and "street" in obj and "points" in obj and "user" in obj and "key" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["res"] = usermgr.add_points(obj["street"], obj["user"], obj["points"])
+            # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
         self.respond(response)
@@ -116,23 +122,19 @@ class UserManager:
         self.db = db
         self.keys = {}
 
-    def create_user(self, user, pasw, email):
+    def create_user(self, user, pasw, email, color=None):
+        if color is None:
+            color = ...
         #INSERT INTO `users`(`id`,`name`,`password`,`email`) VALUES (3,'','','');
-        t = (user, pasw, email)
-        # TODO: catch sqlite error and return false
+        t = (user, pasw, email, color)
         try:
-            db.execute("INSERT INTO users (name, password, email) VALUES (?, ?, ?)", t)
+            db.execute("INSERT INTO users (name, password, email, color) VALUES (?, ?, ?, ?)", t)
             db.commit()
         except sqlite3.IntegrityError as e:
             return False
         return True
 
     def login(self, user, pasw):
-        # get user from database
-        # check password
-        # generate key
-        # add key to keys
-        # return key
         t = (user,)
         c = db.execute("SELECT password FROM users WHERE name=?", t)
         l = c.fetchall()
@@ -158,18 +160,60 @@ class UserManager:
     def get_info(self, user):
         ret = {}
         t = (user,)
-        c = db.execute("SELECT email FROM users WHERE name=?", t)
+        c = db.execute("SELECT email, color FROM users WHERE name=?", t)
         l = c.fetchall()
         if len(l) != 1:
             return None
         ret["email"] = l[0][0]
+        ret["color"] = l[0][1]
         return ret
 
+    def get_points(self, user, street):
+        # SELECT points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name="test" AND streets.name="naamsestraat"
+        t = (user, street)
+        c = db.execute("SELECT points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name=? AND streets.name=?", t)
+        l = c.fetchall()
+        if (len(l) != 1):
+            return 0
+        return l[0][0]
+
+    def add_points(self, street, user, points):
+        return False
+    # key: AIzaSyBngfWtrJwDsdORmB5jCFb3AMe9lrtqUHw
+        # get street id
+        # if not exists -> create -> gmaps api c.lastrowid
+        # get points (join with users)
+        # if not exists:
+        #   insert
+        # else:
+        #   update
+        print("in add")
+        t = (street, user)
+        c = db.execute("SELECT street.id, street.points FROM street INNER JOIN users ON street.userId=users.id WHERE street.street=? AND users.name=?", t)
+        l = c.fetchall()
+        # INSERT INTO street (userId, street, points) SELECT users.id, 'niewestraat', 10 FROM users WHERE users.name='timo'
+        if (len(l) == 0):
+            t = (street, points, user)
+            c = db.execute("INSERT INTO street (userId, street, points) SELECT users.id, ?, ? FROM users WHERE users.name=?", t)
+            db.commit()
+        # UPDATE `street` SET `points`=? WHERE id=l[0][0];
+        else:
+            t = (points + l[0][1], l[0][0])
+            c = db.execute("UPDATE street SET points=? WHERE id=?", t)
+        return True
+
     def get_rank(self, street):
-        # get rankings in street from database
-        # format
-        # return
-        pass
+        # SELECT users.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE streets.name='naamsestraat' ORDER BY points.points DESC LIMIT 10
+        t = (street,)
+        c = db.execute("SELECT users.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE streets.name=? ORDER BY points.points DESC LIMIT 10", t)
+        return c.fetchall()
+
+    def get_all_points(self, user):
+        # SELECT streets.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name="test" ORDER BY points.points DESC
+        t = (user,)
+        c = db.execute("SELECT streets.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name=? ORDER BY points.points DESC", t)
+        l = c.fetchall()
+        return l
 
 db = sqlite3.connect('test.db')
 usermgr = UserManager(db)
