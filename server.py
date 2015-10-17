@@ -2,6 +2,7 @@ import asyncio
 import json
 import sqlite3
 import random
+import googlemaps
     
 # {"req": "login", "user": "<user name>", "pass": "password"}
 
@@ -179,28 +180,38 @@ class UserManager:
         return l[0][0]
 
     def add_points(self, street, user, points):
-        return False
-    # key: AIzaSyBngfWtrJwDsdORmB5jCFb3AMe9lrtqUHw
-        # get street id
-        # if not exists -> create -> gmaps api c.lastrowid
-        # get points (join with users)
-        # if not exists:
-        #   insert
-        # else:
-        #   update
-        print("in add")
-        t = (street, user)
-        c = db.execute("SELECT street.id, street.points FROM street INNER JOIN users ON street.userId=users.id WHERE street.street=? AND users.name=?", t)
+        #key: AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ
+        t = (street,)
+        c = db.execute("SELECT id FROM streets WHERE name=?", t)
         l = c.fetchall()
-        # INSERT INTO street (userId, street, points) SELECT users.id, 'niewestraat', 10 FROM users WHERE users.name='timo'
-        if (len(l) == 0):
-            t = (street, points, user)
-            c = db.execute("INSERT INTO street (userId, street, points) SELECT users.id, ?, ? FROM users WHERE users.name=?", t)
-            db.commit()
-        # UPDATE `street` SET `points`=? WHERE id=l[0][0];
+        streetId = None
+        if (len(l) != 1):
+            # street doesn't exist
+            lookup = gmaps.geocode(street + ", Leuven")
+            lat = None
+            lng = None
+            if (len(lookup) > 0):
+                lat = lookup[0]["geometry"]["location"]["lat"]
+                lng = lookup[0]["geometry"]["location"]["lng"]
+
+            t = (street, lat, lng)
+            c = db.execute("INSERT INTO streets (name, lat, long) VALUES (?, ?, ?)", t)
+            streetId = c.lastrowid
         else:
+            # street does exist
+            streetId = l[0][0]
+        t = (user, streetId)
+        c = db.execute("SELECT points.id, points.points FROM points INNER JOIN users ON points.userId=users.id WHERE users.name=? AND points.streetId=?", t)
+        l = c.fetchall()
+        if (len(l) != 1):
+            # user has no points in street
+            t = (streetId, points, user)
+            c = db.execute("INSERT INTO points (userId, streetId, points) SELECT users.id, ?, ? FROM users WHERE users.name=?", t)
+        else:
+            # user has points in street
             t = (points + l[0][1], l[0][0])
-            c = db.execute("UPDATE street SET points=? WHERE id=?", t)
+            c = db.execute("UPDATE points SET points=? WHERE id=?", t)
+        db.commit()
         return True
 
     def get_rank(self, street):
@@ -217,6 +228,7 @@ class UserManager:
         return l
 
 db = sqlite3.connect('test.db')
+gmaps = googlemaps.Client(key="AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ")
 usermgr = UserManager(db)
 
 loop = asyncio.get_event_loop()
