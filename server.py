@@ -37,8 +37,8 @@ class EchoServerClientProtocol(asyncio.Protocol):
                     usermgr.logout(obj["user"])
                     response["res"] = True
             # create user:
-            elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj:
-                response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"])
+            elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj and "color" in obj:
+                response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"], obj["color"])
             # user info:
             elif request == "user-info" and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
@@ -125,7 +125,7 @@ class UserManager:
 
     def create_user(self, user, pasw, email, color=None):
         if color is None:
-            color = ...
+            color = -1
         #INSERT INTO `users`(`id`,`name`,`password`,`email`) VALUES (3,'','','');
         t = (user, pasw, email, color)
         try:
