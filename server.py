@@ -190,12 +190,22 @@ class UserManager:
             lookup = gmaps.geocode(street + ", Leuven")
             lat = None
             lng = None
+            neLat = None
+            neLong = None
+            swLat = None
+            swLong = None
             if (len(lookup) > 0):
                 lat = lookup[0]["geometry"]["location"]["lat"]
                 lng = lookup[0]["geometry"]["location"]["lng"]
 
-            t = (street, lat, lng)
-            c = db.execute("INSERT INTO streets (name, lat, long) VALUES (?, ?, ?)", t)
+                neLat = lookup[0]["geometry"]["viewport"]["northeast"]["lat"]
+                neLong = lookup[0]["geometry"]["viewport"]["northeast"]["lng"]
+
+                swLat = lookup[0]["geometry"]["viewport"]["southwest"]["lat"]
+                swLong = lookup[0]["geometry"]["viewport"]["southwest"]["lng"]
+
+            t = (street, lat, lng, neLat, neLong, swLat, swLong)
+            c = db.execute("INSERT INTO streets (name, lat, long, neLat, neLong, swLat, swLong) VALUES (?, ?, ?, ?, ?, ?, ?)", t)
             streetId = c.lastrowid
         else:
             # street does exist
