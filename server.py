@@ -71,6 +71,10 @@ class EchoServerClientProtocol(asyncio.Protocol):
             # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
+            elif request == "get-poly" and "key" in obj and "user" in obj and "street" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["poly"] = usermgr.get_poly(obj["street"])
+                    response["res"] = response["poly"] is not None
         self.respond(response)
 
     def connection_lost(self, exc):
@@ -194,6 +198,7 @@ class UserManager:
             neLong = None
             swLat = None
             swLong = None
+            poly = ""
             if (len(lookup) > 0):
                 lat = lookup[0]["geometry"]["location"]["lat"]
                 lng = lookup[0]["geometry"]["location"]["lng"]
@@ -203,9 +208,13 @@ class UserManager:
 
                 swLat = lookup[0]["geometry"]["viewport"]["southwest"]["lat"]
                 swLong = lookup[0]["geometry"]["viewport"]["southwest"]["lng"]
-
-            t = (street, lat, lng, neLat, neLong, swLat, swLong)
-            c = db.execute("INSERT INTO streets (name, lat, long, neLat, neLong, swLat, swLong) VALUES (?, ?, ?, ?, ?, ?, ?)", t)
+                directions = gmaps.directions((neLat, neLong), (swLat, swLong), "bicycling")
+                if (len(directions) > 0):
+                    poly = directions[0]['overview_polyline']['points']
+                # get directions from neLAt to swLAt
+            # TODO: add user color
+            t = (street, lat, lng, neLat, neLong, swLat, swLong, poly)
+            c = db.execute("INSERT INTO streets (name, lat, long, neLat, neLong, swLat, swLong, poly) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", t)
             streetId = c.lastrowid
         else:
             # street does exist
@@ -221,6 +230,7 @@ class UserManager:
             # user has points in street
             t = (points + l[0][1], l[0][0])
             c = db.execute("UPDATE points SET points=? WHERE id=?", t)
+        # TODO: update color?
         db.commit()
         return True
 
@@ -236,6 +246,14 @@ class UserManager:
         c = db.execute("SELECT streets.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name=? ORDER BY points.points DESC", t)
         l = c.fetchall()
         return l
+
+    def get_poly(self, street):
+        t  = (street,)
+        c = db.execute("SELECT poly FROM streets WHERE name=?", t)
+        l = c.fetchall()
+        if (len(l) != 1):
+            return None
+        return l[0][0]
 
 db = sqlite3.connect('test.db')
 gmaps = googlemaps.Client(key="AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ")
