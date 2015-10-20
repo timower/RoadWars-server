@@ -71,7 +71,7 @@ class EchoServerClientProtocol(asyncio.Protocol):
             # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
-                    self.respond(response)
+        self.respond(response)
 
     def connection_lost(self, exc):
         print('Connection lost from {}'.format(self.peername))
@@ -183,9 +183,10 @@ class UserManager:
         #key: AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ
         changed_points = False
         t = (street,)
-        c = db.execute("SELECT id FROM streets WHERE name=?", t)
+        c = db.execute("SELECT id, points FROM streets WHERE name=?", t)
         l = c.fetchall()
         streetId = None
+        old_points = 0
         if (len(l) != 1):
             # street doesn't exist
             lookup = gmaps.geocode(street + ", Leuven")
@@ -212,6 +213,7 @@ class UserManager:
         else:
             # street does exist
             streetId = l[0][0]
+            old_points = l[0][1]
         t = (user, streetId)
         c = db.execute("SELECT points.id, points.points FROM points INNER JOIN users ON points.userId=users.id WHERE users.name=? AND points.streetId=?", t)
         l = c.fetchall()
@@ -229,11 +231,12 @@ class UserManager:
             t = (points + l[0][1], l[0][0])
             c = db.execute("UPDATE points SET points=? WHERE id=?", t)
         if new_points is not None:
-            old_points = self.get_top_points(street)
+            print("old points: " + str(old_points))
+            print("new points: " + str(new_points))
             if new_points > old_points:
+                print("updateing points")
                 t = (new_points, user, streetId)
-                c = db.execute("UPDATE streets SET points=?, color=(SELECT users.color FROM users WHERE users.name=?) WHERE id=?")
-
+                c = db.execute("UPDATE streets SET points=?, color=(SELECT users.color FROM users WHERE users.name=?) WHERE id=?", t)
 
         db.commit()
         return True
