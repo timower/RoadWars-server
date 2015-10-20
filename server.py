@@ -71,11 +71,7 @@ class EchoServerClientProtocol(asyncio.Protocol):
             # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
-            elif request == "get-poly" and "key" in obj and "user" in obj and "street" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    response["poly"] = usermgr.get_poly(obj["street"])
-                    response["res"] = response["poly"] is not None
-        self.respond(response)
+                    self.respond(response)
 
     def connection_lost(self, exc):
         print('Connection lost from {}'.format(self.peername))
@@ -247,13 +243,13 @@ class UserManager:
         l = c.fetchall()
         return l
 
-    def get_poly(self, street):
-        t  = (street,)
-        c = db.execute("SELECT poly FROM streets WHERE name=?", t)
+    def get_street(self, street):
+        t = (street,)
+        c = db.execute("SELECT points, color FROM streets WHERE name=?", t)
         l = c.fetchall()
         if (len(l) != 1):
             return None
-        return l[0][0]
+        return l
 
 db = sqlite3.connect('test.db')
 gmaps = googlemaps.Client(key="AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ")
