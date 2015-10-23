@@ -41,14 +41,14 @@ class EchoServerClientProtocol(asyncio.Protocol):
             elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj and "color" in obj:
                 response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"], obj["color"])
             # user info:
-            elif request == "user-info" and "user" in obj and "key" in obj:
+            elif request == "user-info" and "user" in obj and "key" in obj and "info-user" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
-                    info = usermgr.get_info(obj["user"])
+                    info = usermgr.get_info(obj["info-user"])
                     if info is not None:
                         response["res"] = True
                         response["email"] = info["email"]
                         response["color"] = info["color"]
-                        response["user"] = obj["user"]
+                        response["user"] = obj["info-user"]
             # street rank
             elif request == "street-rank" and "street" in obj and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
@@ -60,10 +60,10 @@ class EchoServerClientProtocol(asyncio.Protocol):
                     response["res"] = True
                     response["points"] = usermgr.get_points(obj["user"], obj["street"])
             # get all points (of user)
-            elif request == "get-all-points" and "user" in obj and "key" in obj:
+            elif request == "get-all-points" and "user" in obj and "key" in obj and "info-user" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
                     response["res"] = True
-                    response["points"] = usermgr.get_all_points(obj["user"])
+                    response["points"] = usermgr.get_all_points(obj["info-user"])
             # add points
             elif request == "add-points" and "street" in obj and "points" in obj and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
@@ -71,6 +71,17 @@ class EchoServerClientProtocol(asyncio.Protocol):
             # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
+            elif request == "get-street" and "key" in obj and "user" in obj and "street" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    info = usermgr.get_top_points(obj["street"])
+                    if info is not None:
+                        response["res"] = True
+                        response["street"] = obj["street"]
+                        response["info"] = info
+            elif request == "get-all-streets" and "key" in obj and "user" in obj and "neLat" in obj and "neLong" in obj and "swLat" in obj and "swLong" in obj:
+                if usermgr.check(obj["user"], obj["key"]):
+                    response["streets"] = usermgr.get_all_streets(obj["neLat"], obj["neLong"], obj["swLat"], obj["swLong"])
+                    response["res"] = True
         self.respond(response)
 
     def connection_lost(self, exc):
@@ -249,11 +260,11 @@ class UserManager:
 
     def get_top_points(self, street):
         t = (street,)
-        c = db.execute("SELECT points.points FROM points INNER JOIN streets ON points.streetId=streets.id WHERE streets.name=? ORDER BY points.points DESC LIMIT 1", t)
+        c = db.execute("SELECT points.points, users.name, users.color FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE streets.name=? ORDER BY points.points DESC LIMIT 1", t)
         l = c.fetchall()
         if (len(l) != 1):
-            return 0
-        return l[0][0]
+            return None
+        return l[0]
 
     def get_all_points(self, user):
         # SELECT streets.name, points.points FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE users.name="test" ORDER BY points.points DESC
@@ -268,6 +279,19 @@ class UserManager:
         l = c.fetchall()
         if (len(l) != 1):
             return None
+        return l
+
+    def get_street_location(self, street):
+        t = (street,)
+        c = db.execute("SELECT neLat, neLong, swLat, swLong FROM streets WHERE name=?", t)
+        l = c.fetchall()
+        if (len(l) != 1):
+            return None
+        return l[0]
+    def get_all_streets(self, neLat, neLong, swLat, swLong):
+        t = (neLat, neLong, swLat, swLong)
+        c = db.execute("SELECT name, lat, long, color FROM streets WHERE lat < ? AND long < ? AND lat > ? AND long > ? ORDER BY points DESC LIMIT 10", t)
+        l = c.fetchall()
         return l
 
 db = sqlite3.connect('test.db')
