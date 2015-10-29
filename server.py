@@ -67,7 +67,10 @@ class EchoServerClientProtocol(asyncio.Protocol):
             # add points
             elif request == "add-points" and "street" in obj and "points" in obj and "user" in obj and "key" in obj:
                 if usermgr.check(obj["user"], obj["key"]):
-                    response["res"] = usermgr.add_points(obj["street"], obj["user"], obj["points"])
+                    if obj["points"] != 0
+                        response["res"] = usermgr.add_points(obj["street"], obj["user"], obj["points"])
+                    else:
+                        response["res"] = True
             # check login
             elif request == "check-login" and "key" in obj and "user" in obj:
                 response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
