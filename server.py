@@ -197,37 +197,42 @@ class UserManager:
         #key: AIzaSyCnMTd5Ni48syP8OHe_Q3iQuDcnoESMErQ
         changed_points = False
         t = (street,)
-        c = db.execute("SELECT id, points FROM streets WHERE name=?", t)
+        c = db.execute("SELECT id, userId FROM streets WHERE name=?", t)
         l = c.fetchall()
         streetId = None
+        # userId of owner of street
+        userId = None
         old_points = 0
+
         if (len(l) != 1):
             # street doesn't exist
             lookup = gmaps.geocode(street + ", Leuven")
             lat = None
             lng = None
-            neLat = None
-            neLong = None
-            swLat = None
-            swLong = None
             if (len(lookup) > 0):
                 lat = lookup[0]["geometry"]["location"]["lat"]
                 lng = lookup[0]["geometry"]["location"]["lng"]
 
-                neLat = lookup[0]["geometry"]["viewport"]["northeast"]["lat"]
-                neLong = lookup[0]["geometry"]["viewport"]["northeast"]["lng"]
+            # lookup userId
+            t = (user,)
+            c = db.execute("SELECT id FROM users WHERE name=?", t)
+            l = c.fetchall()
+            userId = l[0][0]
 
-                swLat = lookup[0]["geometry"]["viewport"]["southwest"]["lat"]
-                swLong = lookup[0]["geometry"]["viewport"]["southwest"]["lng"]
-            # TODO: add user color
-            t = (street, lat, lng, neLat, neLong, swLat, swLong, points, user)
-            c = db.execute("INSERT INTO streets (name, lat, long, neLat, neLong, swLat, swLong, points, color) SELECT ?, ?, ?, ?, ?, ?, ?, ?, users.color FROM users WHERE users.name=?", t)
+            t = (street, lat, lng, userId)
+            c = db.execute("INSERT INTO streets (name, lat, long, userId) VALUES (?, ?, ?, ?)", t)
             streetId = c.lastrowid
             changed_points = True
         else:
             # street does exist
             streetId = l[0][0]
-            old_points = l[0][1]
+            userId = l[0][1]
+            # get old_points:
+            t= (userId, streetId)
+            c = db.execute("SELECT points FROM points WHERE userId=? AND streetId=?", t)
+            l = c.fetchall()
+            old_points = l[0][0]
+
         t = (user, streetId)
         c = db.execute("SELECT points.id, points.points FROM points INNER JOIN users ON points.userId=users.id WHERE users.name=? AND points.streetId=?", t)
         l = c.fetchall()
@@ -242,15 +247,16 @@ class UserManager:
         else:
             # user has points in street
             new_points = points + l[0][1]
-            t = (points + l[0][1], l[0][0])
+            t = (new_points, l[0][0])
             c = db.execute("UPDATE points SET points=? WHERE id=?", t)
+
         if new_points is not None:
             print("old points: " + str(old_points))
             print("new points: " + str(new_points))
             if new_points > old_points:
-                print("updateing points")
-                t = (new_points, user, streetId)
-                c = db.execute("UPDATE streets SET points=?, color=(SELECT users.color FROM users WHERE users.name=?) WHERE id=?", t)
+                print("updating userId in streets")
+                t = (user, streetId)
+                c = db.execute("UPDATE streets SET userId=(SELECT id FROM users WHERE name=?) WHERE id=?", t)
 
         db.commit()
         return True
@@ -263,6 +269,7 @@ class UserManager:
 
     def get_top_points(self, street):
         t = (street,)
+        # TODO: optimize to use userId in street table
         c = db.execute("SELECT points.points, users.name, users.color FROM points INNER JOIN streets ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE streets.name=? ORDER BY points.points DESC LIMIT 1", t)
         l = c.fetchall()
         if (len(l) != 1):
@@ -278,22 +285,15 @@ class UserManager:
 
     def get_street(self, street):
         t = (street,)
-        c = db.execute("SELECT points, color FROM streets WHERE name=?", t)
+        c = db.execute("SELECT points.points, users.color FROM streets INNER JOIN users ON streets.userId=users.id INNER JOIN points ON users.id=points.userId AND streets.id=points.streetId WHERE streets.name=?", t)
         l = c.fetchall()
         if (len(l) != 1):
             return None
         return l
 
-    def get_street_location(self, street):
-        t = (street,)
-        c = db.execute("SELECT neLat, neLong, swLat, swLong FROM streets WHERE name=?", t)
-        l = c.fetchall()
-        if (len(l) != 1):
-            return None
-        return l[0]
     def get_all_streets(self, neLat, neLong, swLat, swLong):
         t = (neLat, neLong, swLat, swLong)
-        c = db.execute("SELECT name, lat, long, color FROM streets WHERE lat < ? AND long < ? AND lat > ? AND long > ? ORDER BY points DESC LIMIT 10", t)
+        c = db.execute("SELECT streets.name, streets.lat, streets.long, users.color FROM streets INNER JOIN users ON streets.userId=users.id INNER JOIN points ON streets.id=points.streetId AND users.id=points.userId WHERE streets.lat < ? AND streets.long < ? AND streets.lat > ? AND streets.long > ? ORDER BY points.points DESC LIMIT 10", t)
         l = c.fetchall()
         return l
 
