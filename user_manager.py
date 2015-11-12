@@ -153,13 +153,13 @@ class UserManager:
         l = c.fetchall()
         return l
 
-    def get_street(self, street):
-        t = (street,)
-        c = self.db.execute("SELECT points.points, users.color FROM streets INNER JOIN users ON streets.userId=users.id INNER JOIN points ON users.id=points.userId AND streets.id=points.streetId WHERE streets.name=?", t)
-        l = c.fetchall()
-        if (len(l) != 1):
-            return None
-        return l
+    # def get_street(self, street):
+    #     t = (street,)
+    #     c = self.db.execute("SELECT points.points, users.color FROM streets INNER JOIN users ON streets.userId=users.id INNER JOIN points ON users.id=points.userId AND streets.id=points.streetId WHERE streets.name=?", t)
+    #     l = c.fetchall()
+    #     if (len(l) != 1):
+    #         return None
+    #     return l
 
     def get_all_streets(self, neLat, neLong, swLat, swLong):
         t = (neLat, neLong, swLat, swLong)
