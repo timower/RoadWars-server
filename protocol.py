@@ -3,6 +3,7 @@ import json
 
 usermgr = None
 
+
 # {"req": "login", "user": "<user name>", "pass": "password"}
 class RoadWarsProtocol(asyncio.Protocol):
     def connection_made(self, transport):

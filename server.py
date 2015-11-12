@@ -1,7 +1,5 @@
 import asyncio
-import json
 import sqlite3
-import random
 import googlemaps
 from user_manager import UserManager
 import protocol
