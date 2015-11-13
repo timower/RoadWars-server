@@ -46,12 +46,17 @@ class UserManager:
     def get_info(self, user):
         ret = {}
         t = (user,)
-        c = self.db.execute("SELECT email, color FROM users WHERE name=?", t)
+        c = self.db.execute("SELECT email, color, id FROM users WHERE name=?", t)
         l = c.fetchall()
         if len(l) != 1:
             return None
         ret["email"] = l[0][0]
         ret["color"] = l[0][1]
+        # get number of streets the user owns:
+        t = (l[0][2],)
+        c = self.db.execute("SELECT COUNT(id) FROM streets WHERE userId=?", t)
+        l = c.fetchall()
+        ret["n-streets"] = l[0][0]
         return ret
 
     def get_points(self, user, street):
