@@ -25,7 +25,8 @@ class RoadWarsProtocol(asyncio.Protocol):
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
             "get-friends":      [True,      ["user"],                               self.get_friends],
             "add-friend":       [True,      ["user", "name"],                       self.add_friend],
-        }
+            "pending-req":      [True,      ["user"],                               self.pending_req],
+            }
 
     def data_received(self, data):
         message = data.decode()
@@ -136,4 +137,8 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def add_friend(self, response, user, name):
         response["requests"] = usermgr.add_friend(user, name)
+        response["res"] = True
+
+    def pending_req(self, response, user):
+        response["pending"] = usermgr.pending_req(user)
         response["res"] = True

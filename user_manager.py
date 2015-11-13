@@ -170,3 +170,11 @@ class UserManager:
                             "(SELECT id FROM users WHERE name=?))", t)
         self.db.commit()
         return True
+
+    def pending_req(self, user):
+        column1 = self.get_friend_column(1, user)
+        column2 = self.get_friend_column(2, user)
+        set1 = {x[0] for x in column1}
+        set2 = {x[0] for x in column2}
+        requests = list(set2.difference(set1))
+        # returns list of people that have requested the user, add select for color and name
