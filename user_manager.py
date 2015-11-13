@@ -139,9 +139,28 @@ class UserManager:
         l = c.fetchall()
         return l
 
+    def get_friend_column(self, column, user):
+        if column == 1:
+            t = (user,)
+            c = self.db.execute("SELECT userId2 FROM friends WHERE userId1 = (SELECT id FROM users WHERE name=?)", t)
+            return c.fetchall()
+        else:
+            t = (user,)
+            c = self.db.execute("SELECT userId1 FROM friends WHERE userId2 = (SELECT id FROM users WHERE name=?)", t)
+            return c.fetchall()
+
     def get_friends(self, user):
-        t = (user,)
-        c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.userId2=users.id "
-                            "WHERE friends.userId1 = (SELECT id FROM users WHERE name=?)", t)
-        l = c.fetchall()
-        return l
+        column1 = get_friend_column(1, user)
+        column2 = get_friend_column(2, user)
+        set1 = {x[0] for x in column1}
+        set2 = {x[0] for x in column2}
+        friends_ids = list(set1 & set2)
+        c = self.db.execute("SELECT name, color FROM users WHERE id IN ({})".format(', '.join('?' for _ in friends_ids))
+                            , friends_ids)
+        return c.fetchall()
+
+    def add_friend(self, user, name):
+        t = (user, name)
+        c = self.db.execute("INSERT INTO friends (userId1, userId2) VALUES ((SELECT id FROM users WHERE name=?), "
+                            "(SELECT id FROM users WHERE name=?))", t)
+        return
