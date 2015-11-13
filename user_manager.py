@@ -155,8 +155,8 @@ class UserManager:
             return c.fetchall()
 
     def get_friends(self, user):
-        column1 = get_friend_column(1, user)
-        column2 = get_friend_column(2, user)
+        column1 = self.get_friend_column(1, user)
+        column2 = self.get_friend_column(2, user)
         set1 = {x[0] for x in column1}
         set2 = {x[0] for x in column2}
         friends_ids = list(set1 & set2)
