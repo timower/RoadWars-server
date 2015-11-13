@@ -10,6 +10,20 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(self.peername))
         self.transport = transport
+        self.request_table = {
+            # request           check key?    requirements         func
+            "login":            [False,     ["user", "pass"],                       self.login],
+            "logout":           [True,      ["user"],                               self.logout],
+            "check-login":      [True,      [],                                     self.check_login],
+            "create-user":      [True,      ["user", "pass", "email", "color"],     self.create_user],
+            "user-info":        [True,      ["info-user"],                          self.user_info],
+            "street-rank":      [True,      ["street"],                             self.street_rank],
+            "get-points":       [True,      ["street", "user"],                     self.get_points],
+            "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
+            "add-points":       [True,      ["user", "street", "points"],           self.add_points],
+            "get-street":       [True,      ["street"],                             self.get_street],
+            "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
+        }
 
     def data_received(self, data):
         message = data.decode()
@@ -19,70 +33,32 @@ class RoadWarsProtocol(asyncio.Protocol):
         response = {"res": False}
 
         if "req" in obj:
-
-            request = obj['req']
+            request = obj["req"]
             response["req"] = request
 
-            # login:
-            if request == "login" and "user" in obj and "pass" in obj:
-                key = usermgr.login(obj["user"], obj["pass"])
-                if key is None:
-                    response = {"res":  False, "req": "login"}
-                else:
-                    response = {"res": True, "req": "login", "key": key}
-            # logout:
-            elif request == "logout" and "user" in obj and "key" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    usermgr.logout(obj["user"])
-                    response["res"] = True
-            # create user:
-            elif request == "create-user" and "user" in obj and "pass" in obj and "email" in obj and "color" in obj:
-                response["res"] = usermgr.create_user(obj["user"], obj["pass"], obj["email"], obj["color"])
-            # user info:
-            elif request == "user-info" and "user" in obj and "key" in obj and "info-user" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    info = usermgr.get_info(obj["info-user"])
-                    if info is not None:
-                        response["res"] = True
-                        response["email"] = info["email"]
-                        response["color"] = info["color"]
-                        response["user"] = obj["info-user"]
-            # street rank
-            elif request == "street-rank" and "street" in obj and "user" in obj and "key" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    response["res"] = True
-                    response["rank"] = usermgr.get_rank(obj["street"])
-            # get points
-            elif request == "get-points" and "street" in obj and "user" in obj and "key" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    response["res"] = True
-                    response["points"] = usermgr.get_points(obj["user"], obj["street"])
-            # get all points (of user)
-            elif request == "get-all-points" and "user" in obj and "key" in obj and "info-user" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    response["res"] = True
-                    response["points"] = usermgr.get_all_points(obj["info-user"])
-            # add points
-            elif request == "add-points" and "street" in obj and "points" in obj and "user" in obj and "key" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    if obj["points"] != 0:
-                        response["res"] = usermgr.add_points(obj["street"], obj["user"], obj["points"])
-                    else:
-                        response["res"] = True
-            # check login
-            elif request == "check-login" and "key" in obj and "user" in obj:
-                response = {"res": usermgr.check(obj["user"], obj["key"]), "req": "check-login"}
-            elif request == "get-street" and "key" in obj and "user" in obj and "street" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    info = usermgr.get_top_points(obj["street"])
-                    if info is not None:
-                        response["res"] = True
-                        response["street"] = obj["street"]
-                        response["info"] = info
-            elif request == "get-all-streets" and "key" in obj and "user" in obj and "neLat" in obj and "neLong" in obj and "swLat" in obj and "swLong" in obj:
-                if usermgr.check(obj["user"], obj["key"]):
-                    response["streets"] = usermgr.get_all_streets(obj["neLat"], obj["neLong"], obj["swLat"], obj["swLong"])
-                    response["res"] = True
+            if request in self.request_table:
+                row = self.request_table[request]
+                # check key:
+                if row[0]:
+                    if not ("user" in obj and "key" in obj):
+                        response["err"] = "Need a user and key"
+                        self.respond(response)
+                        return
+                    if not usermgr.check(obj["user"], obj["key"]):
+                        response["err"] = "Invalid key"
+                        self.respond(response)
+                        return
+                # check requirements:
+                requirements = row[1]
+                if any(x not in obj for x in requirements):
+                    response["err"] = "request needs more values"
+                    self.respond(response)
+                    return
+                # call func:
+                argument_list = [obj[x] for x in requirements]
+                row[2](response, *argument_list)
+            else:
+                response["err"] = "Unknown request"
         self.respond(response)
 
     def connection_lost(self, exc):
@@ -92,3 +68,61 @@ class RoadWarsProtocol(asyncio.Protocol):
         st = json.dumps(obj)
         self.transport.write(st.encode())
         self.transport.write("\n".encode())
+
+    # request functions:
+
+    def login(self, response, user, passw):
+        key = usermgr.login(user, passw)
+        if key is None:
+            response["res"] = False
+            response["err"] = "error logging in"
+        else:
+            response["res"] = True
+            response["key"] = key
+
+    def logout(self, response, user):
+        usermgr.logout(user)
+        response["res"] = True
+
+    def check_login(self, response):
+        response["res"] = True
+
+    def create_user(self, response, user, passw, email, color):
+        response["res"] = usermgr.create_user(user, passw, email, color)
+
+    def user_info(self, response, info_user):
+        info = usermgr.get_info(info_user)
+        if info is not None:
+            response["res"] = True
+            response["email"] = info["email"]
+            response["color"] = info["color"]
+            response["user"] = info_user
+
+    def street_rank(self, response, street):
+        response["res"] = True
+        response["rank"] = usermgr.get_rank(street)
+
+    def get_points(self, response, street, user):
+        response["res"] = True
+        response["points"] = usermgr.get_points(user, street)
+
+    def get_all_points(self, response, info_user):
+        response["res"] = True
+        response["points"] = usermgr.get_all_points(info_user)
+
+    def add_points(self, response, user, street, points):
+        if points != 0:
+            response["res"] = usermgr.add_points(street, user, points)
+        else:
+            response["res"] = True
+
+    def get_street(self, response, street):
+        info = usermgr.get_top_points(street)
+        if info is not None:
+            response["res"] = True
+            response["street"] = street
+            response["info"] = info
+
+    def get_all_streets(self, response, neLat, neLong, swLat, swLong):
+        response["streets"] = usermgr.get_all_streets(neLat, neLong, swLat, swLong)
+        response["res"] = True

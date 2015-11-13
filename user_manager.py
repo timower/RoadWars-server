@@ -114,10 +114,9 @@ class UserManager:
 
     def get_top_points(self, street):
         t = (street,)
-        # TODO: optimize to use userId in street table
         c = self.db.execute("SELECT points.points, users.name, users.color FROM points INNER JOIN streets "
                             "ON points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE "
-                            "streets.name=? ORDER BY points.points DESC LIMIT 1", t)
+                            "streets.userId=users.id AND streets.name=?", t)
         l = c.fetchall()
         if len(l) != 1:
             return None
