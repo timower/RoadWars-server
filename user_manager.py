@@ -168,4 +168,5 @@ class UserManager:
         t = (user, name)
         c = self.db.execute("INSERT INTO friends (userId1, userId2) VALUES ((SELECT id FROM users WHERE name=?), "
                             "(SELECT id FROM users WHERE name=?))", t)
-        return
+        self.db.commit()
+        return True
