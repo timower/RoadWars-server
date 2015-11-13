@@ -138,3 +138,10 @@ class UserManager:
                             " streets.long > ? ORDER BY points.points DESC LIMIT 10", t)
         l = c.fetchall()
         return l
+
+    def get_friends(self, user):
+        t = (user,)
+        c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.userId2=users.id "
+                            "WHERE friends.userId1 = (SELECT id FROM users WHERE name=?)", t)
+        l = c.fetchall()
+        return l
