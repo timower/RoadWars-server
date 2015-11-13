@@ -18,7 +18,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "create-user":      [True,      ["user", "pass", "email", "color"],     self.create_user],
             "user-info":        [True,      ["info-user"],                          self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
-            "get-points":       [True,      ["street", "user"],                     self.get_points],
+            "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
             "add-points":       [True,      ["user", "street", "points"],           self.add_points],
             "get-street":       [True,      ["street"],                             self.get_street],
