@@ -11,7 +11,7 @@ class RoadWarsProtocol(asyncio.Protocol):
         print('Connection from {}'.format(self.peername))
         self.transport = transport
         self.request_table = {
-            # request           check key?    requirements         func
+            # request           check key?   requirements                            func
             "login":            [False,     ["user", "pass"],                       self.login],
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
