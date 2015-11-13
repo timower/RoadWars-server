@@ -15,7 +15,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "login":            [False,     ["user", "pass"],                       self.login],
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
-            "create-user":      [True,      ["user", "pass", "email", "color"],     self.create_user],
+            "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
             "user-info":        [True,      ["info-user"],                          self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
             "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
@@ -97,6 +97,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             response["res"] = True
             response["email"] = info["email"]
             response["color"] = info["color"]
+            response["n-streets"] = info["n-streets"]
             response["user"] = info_user
 
     def street_rank(self, response, street):
