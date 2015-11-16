@@ -11,19 +11,22 @@ class RoadWarsProtocol(asyncio.Protocol):
         print('Connection from {}'.format(self.peername))
         self.transport = transport
         self.request_table = {
-            # request           check key?    requirements         func
+            # request           check key?   requirements                            func
             "login":            [False,     ["user", "pass"],                       self.login],
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
-            "create-user":      [True,      ["user", "pass", "email", "color"],     self.create_user],
+            "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
             "user-info":        [True,      ["info-user"],                          self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
-            "get-points":       [True,      ["street", "user"],                     self.get_points],
+            "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
             "add-points":       [True,      ["user", "street", "points"],           self.add_points],
             "get-street":       [True,      ["street"],                             self.get_street],
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
-        }
+            "get-friends":      [True,      ["user"],                               self.get_friends],
+            "add-friend":       [True,      ["user", "name"],                       self.add_friend],
+            "pending-req":      [True,      ["user"],                               self.pending_req],
+            }
 
     def data_received(self, data):
         message = data.decode()
@@ -96,6 +99,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             response["res"] = True
             response["email"] = info["email"]
             response["color"] = info["color"]
+            response["n-streets"] = info["n-streets"]
             response["user"] = info_user
 
     def street_rank(self, response, street):
@@ -125,4 +129,16 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def get_all_streets(self, response, neLat, neLong, swLat, swLong):
         response["streets"] = usermgr.get_all_streets(neLat, neLong, swLat, swLong)
+        response["res"] = True
+
+    def get_friends(self, response, user):
+        response["friends"] = usermgr.get_friends(user)
+        response["res"] = True
+
+    def add_friend(self, response, user, name):
+        response["requests"] = usermgr.add_friend(user, name)
+        response["res"] = True
+
+    def pending_req(self, response, user):
+        response["pending"] = usermgr.pending_req(user)
         response["res"] = True

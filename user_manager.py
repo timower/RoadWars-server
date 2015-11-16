@@ -46,12 +46,17 @@ class UserManager:
     def get_info(self, user):
         ret = {}
         t = (user,)
-        c = self.db.execute("SELECT email, color FROM users WHERE name=?", t)
+        c = self.db.execute("SELECT email, color, id FROM users WHERE name=?", t)
         l = c.fetchall()
         if len(l) != 1:
             return None
         ret["email"] = l[0][0]
         ret["color"] = l[0][1]
+        # get number of streets the user owns:
+        t = (l[0][2],)
+        c = self.db.execute("SELECT COUNT(id) FROM streets WHERE userId=?", t)
+        l = c.fetchall()
+        ret["n-streets"] = l[0][0]
         return ret
 
     def get_points(self, user, street):
@@ -138,3 +143,38 @@ class UserManager:
                             " streets.long > ? ORDER BY points.points DESC LIMIT 10", t)
         l = c.fetchall()
         return l
+
+    def get_friend_column(self, column, user):
+        if column == 1:
+            t = (user,)
+            c = self.db.execute("SELECT userId2 FROM friends WHERE userId1 = (SELECT id FROM users WHERE name=?)", t)
+            return c.fetchall()
+        else:
+            t = (user,)
+            c = self.db.execute("SELECT userId1 FROM friends WHERE userId2 = (SELECT id FROM users WHERE name=?)", t)
+            return c.fetchall()
+
+    def get_friends(self, user):
+        column1 = self.get_friend_column(1, user)
+        column2 = self.get_friend_column(2, user)
+        set1 = {x[0] for x in column1}
+        set2 = {x[0] for x in column2}
+        friends_ids = list(set1 & set2)
+        c = self.db.execute("SELECT name, color FROM users WHERE id IN ({})".format(', '.join('?' for _ in friends_ids))
+                            , friends_ids)
+        return c.fetchall()
+
+    def add_friend(self, user, name):
+        t = (user, name)
+        c = self.db.execute("INSERT INTO friends (userId1, userId2) VALUES ((SELECT id FROM users WHERE name=?), "
+                            "(SELECT id FROM users WHERE name=?))", t)
+        self.db.commit()
+        return True
+
+    def pending_req(self, user):
+        column1 = self.get_friend_column(1, user)
+        column2 = self.get_friend_column(2, user)
+        set1 = {x[0] for x in column1}
+        set2 = {x[0] for x in column2}
+        requests = list(set2.difference(set1))
+        # returns list of people that have requested the user, add select for color and name
