@@ -147,7 +147,7 @@ class UserManager:
     def get_friends(self, user):
         t = (user,)
         c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.receiverId=users.id"
-                            "WHERE (senderId=?) AND friends.status=1", t)
+                            "WHERE senderId=? AND friends.status=1", t)
         return c.fetchall()
 
     def add_friend(self, user, name):
@@ -159,14 +159,15 @@ class UserManager:
 
     def get_friend_reqs(self, user):
         t = (user,)
-        c = self.db.execute("SELECT users.name FROM friends INNER JOIN users ON friends.senderId=users.id WHERE"
+        c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.senderId=users.id WHERE"
                             " friends.receiverId=(SELECT id FROM users WHERE name=?) AND friends.status=0", t)
         return c.fetchall()
 
     def accept_friend(self, user, name):
         t = (user, name)
         c = self.db.execute("UPDATE friends SET status = 1 WHERE friends.receiverId=(SELECT users.id FROM users WHERE "
-                            "users.name = ?) AND friends.senderId=(SELECT users.id FROM users WHERE users.name=?", t)
+                            "users.name = ?) AND friends.senderId=(SELECT users.id FROM users WHERE users.name=?)", t)
+        t = (user, name)
         c = self.db.execute("INSERT INTO friends (senderId, receiverId, status) VALUES ((SELECT id FROM users WHERE name=?), "
                             "(SELECT id FROM users WHERE name=?), 1)", t)
         self.db.commit()
