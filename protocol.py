@@ -147,10 +147,10 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["res"] = True
 
     def accept_friend(self, response, user, name):
-        response["res"] = usermgr.accept_friend
+        response["res"] = usermgr.accept_friend(user, name)
 
     def remove_friend(self, response, user, name):
-        response["res"] = usermgr.remove_friend
+        response["res"] = usermgr.remove_friend(user, name)
 
     def remove_friend_req(self, response, user, name):
-        response["res"] = usermgr.remove_friend_req
+        response["res"] = usermgr.remove_friend_req(user, name)

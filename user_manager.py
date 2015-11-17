@@ -187,4 +187,3 @@ class UserManager:
                             "senderId = (SELECT users.id FROM users WHERE name = ?)", t)
         self.db.commit()
         return True
-    
