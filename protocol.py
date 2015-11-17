@@ -25,7 +25,10 @@ class RoadWarsProtocol(asyncio.Protocol):
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
             "get-friends":      [True,      ["user"],                               self.get_friends],
             "add-friend":       [True,      ["user", "name"],                       self.add_friend],
-            "pending-req":      [True,      ["user"],                               self.pending_req],
+            "get-friend-reqs":  [True,      ["user"],                               self.get_friend_reqs],
+            "accept-friend":    [True,      ["user", "name"],                       self.accept_friend],
+            "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
+            "remove-friend-req":[True,      ["user", "name"],                       self.remove_friend_req],
             }
 
     def data_received(self, data):
@@ -139,6 +142,15 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["requests"] = usermgr.add_friend(user, name)
         response["res"] = True
 
-    def pending_req(self, response, user):
-        response["pending"] = usermgr.pending_req(user)
+    def get_friend_reqs(self, response, user):
+        response["friend-reqs"] = usermgr.get_friend_reqs(user)
         response["res"] = True
+
+    def accept_friend(self, response, user, name):
+        response["res"] = usermgr.accept_friend
+
+    def remove_friend(self, response, user, name):
+        response["res"] = usermgr.remove_friend
+
+    def remove_friend_req(self, response, user, name):
+        response["res"] = usermgr.remove_friend_req

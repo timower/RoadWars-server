@@ -144,37 +144,47 @@ class UserManager:
         l = c.fetchall()
         return l
 
-    def get_friend_column(self, column, user):
-        if column == 1:
-            t = (user,)
-            c = self.db.execute("SELECT userId2 FROM friends WHERE userId1 = (SELECT id FROM users WHERE name=?)", t)
-            return c.fetchall()
-        else:
-            t = (user,)
-            c = self.db.execute("SELECT userId1 FROM friends WHERE userId2 = (SELECT id FROM users WHERE name=?)", t)
-            return c.fetchall()
-
     def get_friends(self, user):
-        column1 = self.get_friend_column(1, user)
-        column2 = self.get_friend_column(2, user)
-        set1 = {x[0] for x in column1}
-        set2 = {x[0] for x in column2}
-        friends_ids = list(set1 & set2)
-        c = self.db.execute("SELECT name, color FROM users WHERE id IN ({})".format(', '.join('?' for _ in friends_ids))
-                            , friends_ids)
+        t = (user,)
+        c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.receiverId=users.id"
+                            "WHERE (senderId=?) AND friends.status=1", t)
         return c.fetchall()
 
     def add_friend(self, user, name):
         t = (user, name)
-        c = self.db.execute("INSERT INTO friends (userId1, userId2) VALUES ((SELECT id FROM users WHERE name=?), "
-                            "(SELECT id FROM users WHERE name=?))", t)
+        c = self.db.execute("INSERT INTO friends (senderId, receiverId, status) VALUES ((SELECT id FROM users WHERE name=?), "
+                            "(SELECT id FROM users WHERE name=?), 0)", t)
         self.db.commit()
         return True
 
-    def pending_req(self, user):
-        column1 = self.get_friend_column(1, user)
-        column2 = self.get_friend_column(2, user)
-        set1 = {x[0] for x in column1}
-        set2 = {x[0] for x in column2}
-        requests = list(set2.difference(set1))
-        # returns list of people that have requested the user, add select for color and name
+    def get_friend_reqs(self, user):
+        t = (user,)
+        c = self.db.execute("SELECT users.name FROM friends INNER JOIN users ON friends.senderId=users.id WHERE"
+                            " friends.receiverId=(SELECT id FROM users WHERE name=?) AND friends.status=0", t)
+        return c.fetchall()
+
+    def accept_friend(self, user, name):
+        t = (user, name)
+        c = self.db.execute("UPDATE friends SET status = 1 WHERE friends.receiverId=(SELECT users.id FROM users WHERE "
+                            "users.name = ?) AND friends.senderId=(SELECT users.id FROM users WHERE users.name=?", t)
+        c = self.db.execute("INSERT INTO friends (senderId, receiverId, status) VALUES ((SELECT id FROM users WHERE name=?), "
+                            "(SELECT id FROM users WHERE name=?), 1)", t)
+        self.db.commit()
+        return True
+
+    def remove_friend(self, user, name):
+        t = (user, name)
+        c = self.db.execute("REMOVE FROM friends WHERE senderId=(SELECT users.id FROM users WHERE name = ?) AND "
+                            "receiverId =(SELECT users.id FROM users WHERE name = ?)", t)
+        c = self.db.execute("REMOVE FROM friends WHERE receiverId=(SELECT users.id FROM users WHERE name = ?) AND "
+                            "senderId =(SELECT users.id FROM users WHERE name = ?)", t)
+        self.db.commit()
+        return True
+
+    def remove_friend_req(self, user, name):
+        t = (user, name)
+        c = self.db.execute("REMOVE FROM friends WHERE receiverId=(SELECT users.id FROM users WHERE name = ?) AND"
+                            "senderId = (SELECT users.id FROM users WHERE name = ?)", t)
+        self.db.commit()
+        return True
+    
