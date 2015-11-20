@@ -25,6 +25,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
             "get-friends":      [True,      ["user"],                               self.get_friends],
             "add-friend":       [True,      ["user", "name"],                       self.add_friend],
+            "get-all-users":    [True,      [],                                     self.get_all_users],
             "get-friend-reqs":  [True,      ["user"],                               self.get_friend_reqs],
             "accept-friend":    [True,      ["user", "name"],                       self.accept_friend],
             "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
@@ -143,6 +144,10 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def get_friend_reqs(self, response, user):
         response["friend-reqs"] = usermgr.get_friend_reqs(user)
+        response["res"] = True
+
+    def get_all_users(self, response):
+        response["users"] = usermgr.get_all_users()
         response["res"] = True
 
     def accept_friend(self, response, user, name):

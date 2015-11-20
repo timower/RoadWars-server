@@ -157,6 +157,10 @@ class UserManager:
         self.db.commit()
         return True
 
+    def get_all_users(self):
+        c = self.db.execute("SELECT name, color FROM users")
+        return c.fetchall()
+
     def get_friend_reqs(self, user):
         t = (user,)
         c = self.db.execute("SELECT users.name, users.color FROM friends INNER JOIN users ON friends.senderId=users.id WHERE"
