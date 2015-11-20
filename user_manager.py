@@ -178,3 +178,7 @@ class UserManager:
         set2 = {x[0] for x in column2}
         requests = list(set2.difference(set1))
         # returns list of people that have requested the user, add select for color and name
+
+    def get_all_users(self):
+        c = self.db.execute("SELECT name, color FROM users")
+        return c.fetchall()
