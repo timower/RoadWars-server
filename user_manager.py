@@ -146,7 +146,7 @@ class UserManager:
 
     def get_friends(self, user):
         t = (user,)
-        c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id"
+        c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id "
                             "WHERE friends.senderId=? AND friends.status=1", t)
         return c.fetchall()
 
@@ -179,16 +179,16 @@ class UserManager:
 
     def remove_friend(self, user, name):
         t = (user, name)
-        c = self.db.execute("REMOVE FROM friends WHERE senderId=(SELECT users.id FROM users WHERE name = ?) AND "
+        c = self.db.execute("DELETE FROM friends WHERE senderId=(SELECT users.id FROM users WHERE name = ?) AND "
                             "receiverId =(SELECT users.id FROM users WHERE name = ?)", t)
-        c = self.db.execute("REMOVE FROM friends WHERE receiverId=(SELECT users.id FROM users WHERE name = ?) AND "
+        c = self.db.execute("DELETE FROM friends WHERE receiverId=(SELECT users.id FROM users WHERE name = ?) AND "
                             "senderId =(SELECT users.id FROM users WHERE name = ?)", t)
         self.db.commit()
         return True
 
     def remove_friend_req(self, user, name):
         t = (user, name)
-        c = self.db.execute("REMOVE FROM friends WHERE receiverId=(SELECT users.id FROM users WHERE name = ?) AND"
-                            "senderId = (SELECT users.id FROM users WHERE name = ?)", t)
+        c = self.db.execute("DELETE FROM friends WHERE receiverId=(SELECT id FROM users WHERE name = ?) AND "
+                            "senderId = (SELECT id FROM users WHERE name = ?)", t)
         self.db.commit()
         return True
