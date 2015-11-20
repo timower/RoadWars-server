@@ -211,3 +211,8 @@ class UserManager:
                             "senderId = (SELECT id FROM users WHERE name = ?)", t)
         self.db.commit()
         return True
+
+    def get_unknown_users(self, user):
+        t = (user,)
+        c = self.db.execute("SELECT name, color FROM users WHERE id NOT IN (SELECT receiverId FROM friends WHERE senderId= (SELECT id FROM users WHERE name=?))", t)
+        return c.fetchall()

@@ -30,6 +30,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "accept-friend":    [True,      ["user", "name"],                       self.accept_friend],
             "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
             "remove-friend-req":[True,      ["user", "name"],                       self.remove_friend_req],
+            "get-unknown-users":[True,      ["user"],                               self.get_unknown_users],
             }
 
     def data_received(self, data):
@@ -161,3 +162,7 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def remove_friend_req(self, response, user, name):
         response["res"] = usermgr.remove_friend_req(user, name)
+
+    def get_unknown_users(self, response, user):
+        response["users"] = usermgr.get_unknown_users(user)
+        response["res"] = True
