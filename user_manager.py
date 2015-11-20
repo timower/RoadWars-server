@@ -147,7 +147,7 @@ class UserManager:
     def get_friends(self, user):
         t = (user,)
         c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id"
-                            "WHERE senderId=? AND friends.status=1", t)
+                            "WHERE friends.senderId=? AND friends.status=1", t)
         return c.fetchall()
 
     def add_friend(self, user, name):
