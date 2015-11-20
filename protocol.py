@@ -16,7 +16,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
             "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
-            "user-info":        [True,      ["info-user"],                          self.user_info],
+            "user-info":        [True,      ["user", "info-user"],                          self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
             "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
@@ -97,10 +97,13 @@ class RoadWarsProtocol(asyncio.Protocol):
     def create_user(self, response, user, passw, email, color):
         response["res"] = usermgr.create_user(user, passw, email, color)
 
-    def user_info(self, response, info_user):
-        info = usermgr.get_info(info_user)
+    def user_info(self, response, user, info_user):
+        info = usermgr.get_info(user, info_user)
         if info is not None:
             response["res"] = True
+            response["friend"] = info["friend"]
+            response["friend-req"] = info["friend-req"]
+            response["sent-friend-req"] = info["sent-friend-req"]
             response["email"] = info["email"]
             response["color"] = info["color"]
             response["n-streets"] = info["n-streets"]
