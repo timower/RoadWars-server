@@ -238,3 +238,22 @@ class UserManager:
         # send response to name
         self.online_users[name].respond({"req": "started-minigame", "name": user, "res": True, "street": street})
         return True
+
+    def finished_minigame(self, user, name, street):
+        if [user, name, street] in self.minigames:
+            self.minigames.remove([user, name, street])
+            return True
+        elif [name, user, street] in self.minigames:
+            self.minigames.remove([name, user, street])
+            return True
+        else:
+            return False
+
+    def stop_minigame(self, user, name, street):
+        if [user, name, street] in self.minigames:
+            self.minigames.remove([user, name, street])
+        elif [name, user, street] in self.minigames:
+            self.minigames.remove([name, user, street])
+        # Other user might be in on pause() ?
+        self.online_users[name].respond({"req": "stopped-minigame", "name": user, "res": True, "street": street})
+        return True

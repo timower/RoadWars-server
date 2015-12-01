@@ -34,6 +34,9 @@ class RoadWarsProtocol(asyncio.Protocol):
             "get-unknown-users":[True,      ["user"],                               self.get_unknown_users],
             "nfc-friend":       [True,      ["user", "name"],                       self.nfc_friend],
             "start-minigame":   [True,      ["user", "name", "street"],             self.start_minigame],
+            "finished-minigame":[True,      ["user", "name", "street"],             self.finished_minigame],
+            "stop-minigame":    [True,      ["user", "name", "street"],             self.stop_minigame],
+            "ping":             [False,     [],                                     self.ping],
         }
 
     def data_received(self, data):
@@ -181,3 +184,13 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def start_minigame(self, response, user, name, street):
         response["res"] = usermgr.start_minigame(user, name, street)
+
+    def finished_minigame(self, response, user, name, street):
+        response["res"] = usermgr.finished_minigame(user, name, street)
+        response["street"] = street
+
+    def stop_minigame(self, response, user, name, street):
+        response["res"] = usermgr.stop_minigame(user, name, street)
+
+    def ping(self, response):
+        response["res"] = True
