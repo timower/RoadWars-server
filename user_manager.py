@@ -100,7 +100,7 @@ class UserManager:
         c = self.db.execute("SELECT id FROM streets WHERE name=?", t)
         l = c.fetchall()
         if len(l) != 1:
-            lookup = self.gmaps.geocode(street + ", Leuven")
+            lookup = self.gmaps.geocode(street)
             lat = None
             lng = None
             if len(lookup) > 0:
