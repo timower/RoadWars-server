@@ -10,13 +10,14 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(self.peername))
         self.transport = transport
+        self.user_name = None
         self.request_table = {
             # request           check key?   requirements                            func
             "login":            [False,     ["user", "pass"],                       self.login],
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
             "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
-            "user-info":        [True,      ["user", "info-user"],                          self.user_info],
+            "user-info":        [True,      ["user", "info-user"],                  self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
             "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
@@ -31,7 +32,9 @@ class RoadWarsProtocol(asyncio.Protocol):
             "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
             "remove-friend-req":[True,      ["user", "name"],                       self.remove_friend_req],
             "get-unknown-users":[True,      ["user"],                               self.get_unknown_users],
-            }
+            "nfc-friend":       [True,      ["user", "name"],                       self.nfc_friend],
+            "start-minigame":   [True,      ["user", "name", "street"],             self.start_minigame],
+        }
 
     def data_received(self, data):
         message = data.decode()
@@ -56,6 +59,8 @@ class RoadWarsProtocol(asyncio.Protocol):
                         response["err"] = "Invalid key"
                         self.respond(response)
                         return
+                    self.user_name = obj["user"]
+                    usermgr.online_users[self.user_name] = self
                 # check requirements:
                 requirements = row[1]
                 if any(x not in obj for x in requirements):
@@ -70,6 +75,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.respond(response)
 
     def connection_lost(self, exc):
+        if self.user_name is not None:
+            del usermgr.online_users[self.user_name]
         print('Connection lost from {}'.format(self.peername))
 
     def respond(self, obj):
@@ -87,6 +94,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         else:
             response["res"] = True
             response["key"] = key
+            self.user_name = user
+            usermgr.online_users[user] = self
 
     def logout(self, response, user):
         usermgr.logout(user)
@@ -166,3 +175,9 @@ class RoadWarsProtocol(asyncio.Protocol):
     def get_unknown_users(self, response, user):
         response["users"] = usermgr.get_unknown_users(user)
         response["res"] = True
+
+    def nfc_friend(self, response, user, name):
+        response["res"] = usermgr.nfc_friend(user, name)
+
+    def start_minigame(self, response, user, name, street):
+        response["res"] = usermgr.start_minigame(user, name, street)

@@ -7,6 +7,8 @@ class UserManager:
         self.gmaps = gmaps
         self.db = db
         self.keys = {}
+        self.online_users = {}
+        self.minigames = []
 
     def create_user(self, user, pasw, email, color=None):
         if color is None:
@@ -216,3 +218,23 @@ class UserManager:
         t = (user,)
         c = self.db.execute("SELECT name, color FROM users WHERE id NOT IN (SELECT receiverId FROM friends WHERE senderId= (SELECT id FROM users WHERE name=?))", t)
         return c.fetchall()
+
+    def nfc_friend(self, user, name):
+        t = (user, name)
+        c = self.db.execute("DELETE FROM friends WHERE senderId = (SELECT id FROM users WHERE name=?) AND receiverId = (SELECT id FROM users WHERE name=?)", t)
+        c = self.db.execute("INSERT INTO friends (senderId, receiverId, status) VALUES ((SELECT id FROM users WHERE name=?), (SELECT id FROM users WHERE name=?), 1)", t)
+        t = (name, user)
+        c = self.db.execute("DELETE FROM friends WHERE senderId = (SELECT id FROM users WHERE name=?) AND receiverId = (SELECT id FROM users WHERE name=?)", t)
+        c = self.db.execute("INSERT INTO friends (senderId, receiverId, status) VALUES ((SELECT id FROM users WHERE name=?), (SELECT id FROM users WHERE name=?), 1)", t)
+        self.db.commit()
+        return True
+
+    def start_minigame(self, user, name, street):
+        if name not in self.online_users:
+            return False
+        #TODO: check if minigame is already running
+        # start minigame
+        self.minigames.append([user, name, street])
+        # send response to name
+        self.online_users[name].respond({"req": "started-minigame", "name": user, "res": True, "street": street})
+        return True
