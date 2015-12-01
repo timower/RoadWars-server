@@ -43,9 +43,9 @@ class UserManager:
             return False
         return self.keys[user] == key
 
-    def get_info(self, user):
+    def get_info(self, user, user_info):
         ret = {}
-        t = (user,)
+        t = (user_info,)
         c = self.db.execute("SELECT email, color, id FROM users WHERE name=?", t)
         l = c.fetchall()
         if len(l) != 1:
@@ -57,6 +57,25 @@ class UserManager:
         c = self.db.execute("SELECT COUNT(id) FROM streets WHERE userId=?", t)
         l = c.fetchall()
         ret["n-streets"] = l[0][0]
+
+        ret["friend"] = False
+        ret["friend-req"] = False
+        ret["sent-friend-req"] = False
+        if user != user_info:
+            t = (user, user_info)
+            c = self.db.execute("SELECT status FROM friends WHERE receiverId =(SELECT id FROM users WHERE name = ?) AND senderId =(SELECT id FROM users WHERE name = ?)", t)
+            l = c.fetchall()
+            if len(l) != 0:
+                if l[0][0] == 1:
+                    ret["friend"] = True
+                else:
+                    ret["friend-req"] = True
+            else:
+                t = (user, user_info)
+                c = self.db.execute("SELECT status FROM friends WHERE senderId =(SELECT id FROM users WHERE name = ?) AND receiverId =(SELECT id FROM users WHERE name = ?)", t)
+                l = c.fetchall()
+                if len(l) != 0:
+                    ret["sent-friend-req"] = True
         return ret
 
     def get_points(self, user, street):
@@ -147,7 +166,7 @@ class UserManager:
     def get_friends(self, user):
         t = (user,)
         c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id "
-                            "WHERE friends.senderId=? AND friends.status=1", t)
+                            "WHERE friends.senderId=(SELECT id FROM users WHERE name = ?) AND friends.status=1", t)
         return c.fetchall()
 
     def add_friend(self, user, name):
