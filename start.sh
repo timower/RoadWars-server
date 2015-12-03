@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "killing server:"
-screen -ls | grep pts | cut -d. -f1 | awk '{print $1}' | xargs kill
+screen -ls | grep roadwars | cut -d. -f1 | awk '{print $1}' | xargs kill
 echo "done"
 
 echo "starting RoadWars server:"
