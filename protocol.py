@@ -63,8 +63,9 @@ class RoadWarsProtocol(asyncio.Protocol):
                         response["err"] = "Invalid key"
                         self.respond(response)
                         return
-                    self.user_name = obj["user"]
-                    usermgr.online_users[self.user_name] = self
+                    if self.user_name is None:
+                        self.user_name = obj["user"]
+                        usermgr.online_user(self.user_name, self)
                 # check requirements:
                 requirements = row[1]
                 if any(x not in obj for x in requirements):
@@ -80,7 +81,7 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         if self.user_name is not None:
-            del usermgr.online_users[self.user_name]
+            usermgr.offline_user(self.user_name)
         print('Connection lost from {}'.format(self.peername))
 
     def respond(self, obj):
@@ -99,7 +100,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             response["res"] = True
             response["key"] = key
             self.user_name = user
-            usermgr.online_users[user] = self
+            usermgr.online_user(user, self)
 
     def logout(self, response, user):
         usermgr.logout(user)
@@ -198,3 +199,4 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def get_online_users(self, response):
         response["res"] = False
+        response["users"] = usermgr.get_online_users()

@@ -7,8 +7,23 @@ class UserManager:
         self.gmaps = gmaps
         self.db = db
         self.keys = {}
-        self.online_users = {}
+        self._online_users = {}
         self.minigames = []
+        # reset online users:
+        self.db.execute("DELETE FROM online_users")
+        self.db.commit()
+
+    def online_user(self, user, protocol):
+        self._online_users[user] = protocol
+        t = (user,)
+        self.db.execute("INSERT INTO online_users (userId, userName) SELECT id, name FROM users WHERE name=?", t)
+        #self.db.commit()
+
+    def offline_user(self, user):
+        del self._online_users[user]
+        t = (user,)
+        self.db.execute("DELETE FROM online_users WHERE userName=?", t)
+        #self.db.commit()
 
     def create_user(self, user, pasw, email, color=None):
         if color is None:
@@ -230,13 +245,13 @@ class UserManager:
         return True
 
     def start_minigame(self, user, name, street):
-        if name not in self.online_users:
+        if name not in self._online_users:
             return False
         #TODO: check if minigame is already running
         # start minigame
         self.minigames.append([user, name, street])
         # send response to name
-        self.online_users[name].respond({"req": "started-minigame", "name": user, "res": True, "street": street})
+        self._online_users[name].respond({"req": "started-minigame", "name": user, "res": True, "street": street})
         return True
 
     def finished_minigame(self, user, name, street):
@@ -255,5 +270,9 @@ class UserManager:
         elif [name, user, street] in self.minigames:
             self.minigames.remove([name, user, street])
         # Other user might be in on pause() ?
-        self.online_users[name].respond({"req": "stopped-minigame", "name": user, "res": True, "street": street})
+        self._online_users[name].respond({"req": "stopped-minigame", "name": user, "res": True, "street": street})
         return True
+
+    def get_online_users(self):
+        c = self.db.execute("SELECT users.name, users.color FROM online_users INNER JOIN users ON online_users.userId=users.id")
+        return c.fetchall()
