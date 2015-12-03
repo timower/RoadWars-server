@@ -198,5 +198,5 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["res"] = True
 
     def get_online_users(self, response):
-        response["res"] = False
+        response["res"] = True
         response["users"] = usermgr.get_online_users()
