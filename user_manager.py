@@ -1,4 +1,5 @@
 import random
+import hashlib
 import sqlite3
 
 
@@ -28,8 +29,8 @@ class UserManager:
     def create_user(self, user, pasw, email, color=None):
         if color is None:
             color = -1
-
-        t = (user, pasw, email, color)
+        hashpass = hashlib.sha1(pasw.encode()).hexdigest()
+        t = (user, hashpass, email, color)
         try:
             self.db.execute("INSERT INTO users (name, password, email, color) VALUES (?, ?, ?, ?)", t)
             self.db.commit()
@@ -38,11 +39,12 @@ class UserManager:
         return True
 
     def login(self, user, pasw):
+        passhash = hashlib.sha1(pasw.encode()).hexdigest()
         t = (user,)
         c = self.db.execute("SELECT password FROM users WHERE name=?", t)
         l = c.fetchall()
         print(l)
-        if len(l) != 1 or l[0][0] != pasw:
+        if len(l) != 1 or l[0][0] != passhash:
             return None
         key = ""
         for i in range(64):
