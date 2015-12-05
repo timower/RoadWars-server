@@ -9,16 +9,21 @@ class UserManager:
         self.db = db
         self.keys = {}
         self._online_users = {}
+        self._delayed_responses = {}
         self.minigames = []
         # reset online users:
         self.db.execute("DELETE FROM online_users")
         self.db.commit()
 
     def online_user(self, user, protocol):
+        if user not in self._online_users:
+            t = (user,)
+            self.db.execute("INSERT INTO online_users (userId, userName) SELECT id, name FROM users WHERE name=?", t)
+        if user in self._delayed_responses:
+            protocol.respond(self._delayed_responses[user])
+            del self._delayed_responses[user]
         self._online_users[user] = protocol
-        t = (user,)
-        self.db.execute("INSERT INTO online_users (userId, userName) SELECT id, name FROM users WHERE name=?", t)
-        #self.db.commit()
+       #self.db.commit()
 
     def offline_user(self, user):
         del self._online_users[user]
@@ -249,9 +254,12 @@ class UserManager:
     def start_minigame(self, user, name, street):
         if name not in self._online_users:
             return False
-        #TODO: check if minigame is already running
+        # check if user or name is already in minigame:
+        if any(e[0] == user or e[1] == user or e[0] == name or e[1] == name for e in self.minigames):
+            return False
         # start minigame
         self.minigames.append([user, name, street])
+        print(self.minigames)
         # send response to name
         self._online_users[name].respond({"req": "started-minigame", "name": user, "res": True, "street": street})
         return True
@@ -272,7 +280,12 @@ class UserManager:
         elif [name, user, street] in self.minigames:
             self.minigames.remove([name, user, street])
         # Other user might be in on pause() ?
-        self._online_users[name].respond({"req": "stopped-minigame", "name": user, "res": True, "street": street})
+        resp = {"req": "stopped-minigame", "name": user, "res": True, "street": street }
+        if name in self._online_users:
+            self._online_users[name].respond(resp)
+        else:
+            # stop minigame next time user connects:
+            self._delayed_responses[name] = resp
         return True
 
     def get_online_users(self):
