@@ -10,13 +10,14 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(self.peername))
         self.transport = transport
+        self.user_name = None
         self.request_table = {
             # request           check key?   requirements                            func
             "login":            [False,     ["user", "pass"],                       self.login],
             "logout":           [True,      ["user"],                               self.logout],
             "check-login":      [True,      [],                                     self.check_login],
             "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
-            "user-info":        [True,      ["info-user"],                          self.user_info],
+            "user-info":        [True,      ["user", "info-user"],                  self.user_info],
             "street-rank":      [True,      ["street"],                             self.street_rank],
             "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
@@ -25,8 +26,19 @@ class RoadWarsProtocol(asyncio.Protocol):
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
             "get-friends":      [True,      ["user"],                               self.get_friends],
             "add-friend":       [True,      ["user", "name"],                       self.add_friend],
-            "pending-req":      [True,      ["user"],                               self.pending_req],
-            }
+            "get-all-users":    [True,      [],                                     self.get_all_users],
+            "get-friend-reqs":  [True,      ["user"],                               self.get_friend_reqs],
+            "accept-friend":    [True,      ["user", "name"],                       self.accept_friend],
+            "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
+            "remove-friend-req":[True,      ["user", "name"],                       self.remove_friend_req],
+            "get-unknown-users":[True,      ["user"],                               self.get_unknown_users],
+            "nfc-friend":       [True,      ["user", "name"],                       self.nfc_friend],
+            "start-minigame":   [True,      ["user", "name", "street"],             self.start_minigame],
+            "finish-minigame":  [True,      ["user", "name", "street"],             self.finished_minigame],
+            "stop-minigame":    [True,      ["user", "name", "street"],             self.stop_minigame],
+            "ping":             [False,     [],                                     self.ping],
+            "get-online-users": [True,      [],                                     self.get_online_users],
+        }
 
     def data_received(self, data):
         message = data.decode()
@@ -51,6 +63,9 @@ class RoadWarsProtocol(asyncio.Protocol):
                         response["err"] = "Invalid key"
                         self.respond(response)
                         return
+                    if self.user_name is None:
+                        self.user_name = obj["user"]
+                        usermgr.online_user(self.user_name, self)
                 # check requirements:
                 requirements = row[1]
                 if any(x not in obj for x in requirements):
@@ -65,6 +80,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.respond(response)
 
     def connection_lost(self, exc):
+        if self.user_name is not None:
+            usermgr.offline_user(self.user_name)
         print('Connection lost from {}'.format(self.peername))
 
     def respond(self, obj):
@@ -82,6 +99,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         else:
             response["res"] = True
             response["key"] = key
+            self.user_name = user
+            usermgr.online_user(user, self)
 
     def logout(self, response, user):
         usermgr.logout(user)
@@ -93,10 +112,13 @@ class RoadWarsProtocol(asyncio.Protocol):
     def create_user(self, response, user, passw, email, color):
         response["res"] = usermgr.create_user(user, passw, email, color)
 
-    def user_info(self, response, info_user):
-        info = usermgr.get_info(info_user)
+    def user_info(self, response, user, info_user):
+        info = usermgr.get_info(user, info_user)
         if info is not None:
             response["res"] = True
+            response["friend"] = info["friend"]
+            response["friend-req"] = info["friend-req"]
+            response["sent-friend-req"] = info["sent-friend-req"]
             response["email"] = info["email"]
             response["color"] = info["color"]
             response["n-streets"] = info["n-streets"]
@@ -136,9 +158,45 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["res"] = True
 
     def add_friend(self, response, user, name):
-        response["requests"] = usermgr.add_friend(user, name)
+        response["res"] = usermgr.add_friend(user, name)
+
+    def get_friend_reqs(self, response, user):
+        response["friend-reqs"] = usermgr.get_friend_reqs(user)
         response["res"] = True
 
-    def pending_req(self, response, user):
-        response["pending"] = usermgr.pending_req(user)
+    def get_all_users(self, response):
+        response["users"] = usermgr.get_all_users()
         response["res"] = True
+
+    def accept_friend(self, response, user, name):
+        response["res"] = usermgr.accept_friend(user, name)
+
+    def remove_friend(self, response, user, name):
+        response["res"] = usermgr.remove_friend(user, name)
+
+    def remove_friend_req(self, response, user, name):
+        response["res"] = usermgr.remove_friend_req(user, name)
+
+    def get_unknown_users(self, response, user):
+        response["users"] = usermgr.get_unknown_users(user)
+        response["res"] = True
+
+    def nfc_friend(self, response, user, name):
+        response["res"] = usermgr.nfc_friend(user, name)
+
+    def start_minigame(self, response, user, name, street):
+        response["res"] = usermgr.start_minigame(user, name, street)
+
+    def finished_minigame(self, response, user, name, street):
+        response["res"] = usermgr.finished_minigame(user, name, street)
+        response["street"] = street
+
+    def stop_minigame(self, response, user, name, street):
+        response["res"] = usermgr.stop_minigame(user, name, street)
+
+    def ping(self, response):
+        response["res"] = True
+
+    def get_online_users(self, response):
+        response["res"] = True
+        response["users"] = usermgr.get_online_users()
