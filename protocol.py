@@ -150,7 +150,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             response["info"] = info
 
     def get_all_streets(self, response, neLat, neLong, swLat, swLong):
-        response["streets"] = usermgr.get_all_streets(neLat, neLong, swLat, swLong)
+        response["streets"] = usermgr.get_all_streets(float(neLat), float(neLong), float(swLat), float(swLong))
         response["res"] = True
 
     def get_friends(self, response, user):

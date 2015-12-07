@@ -44,6 +44,19 @@ def  login():
         return response
     return redirect(url_for("main"))
 
+@app.route("/request")
+def streeets():
+    user = request.cookies.get("user")
+    key = request.cookies.get("key")
+    if key is not None and user is not None:
+        obj = request.args.to_dict()
+        obj["user"] = user
+        obj["key"] = key
+        print(obj)
+        return json.dumps(send_request(request.args.get("req"), obj))
+    else:
+        return "{\"res\": false}"
+
 @app.route("/")
 def main():
     # get cookies
@@ -54,7 +67,7 @@ def main():
     user = request.cookies.get("user")
     if key == None or user == None or not check_key(user, key):
         return redirect(url_for("login"))
-    return "main page"
+    return render_template("main.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
