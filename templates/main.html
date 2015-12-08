@@ -11,17 +11,30 @@
     <div id="map"></div>
     <script type="text/javascript">
 var map;
+var markers = {};
+
+var lastPos;
+
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
               center: {lat: 50.879549, lng: 4.701242},
               zoom: 14
   });
 
+  lastPos = new google.maps.LatLng(0.0, 0.0);
+
   map.addListener('bounds_changed', function() {
-    console.log(map.getBounds());
+
     var bounds = map.getBounds();
 
     var ne = bounds.getNorthEast();
+    /*
+    if (getDistance(lastPos, ne) < 1000) {
+      return;
+    }
+    console.log("updateing");
+    lastPos = ne;
+    */
     var neLat = ne.lat()
     var neLong = ne.lng()
     var sw = bounds.getSouthWest();
@@ -34,14 +47,20 @@ function initMap() {
       if (resObj["res"]) {
           var streets = resObj["streets"];
           for (var i = 0; i < streets.length; i++) {
-            var color = "#" + (streets[i][3] & 0xFFFFFF).toString(16);
-            var pos = new google.maps.LatLng(streets[i][1], streets[i][2]);
-            var marker = new google.maps.Marker({
-              position: pos, 
-              map: map, 
-              title: streets[i][0], 
-              icon: {scale: 5, fillColor: color, fillOpacity: 1.0, strokeColor: color, path: google.maps.SymbolPath.CIRCLE}
-            });
+            var cnum = ("000000" + (streets[i][3] & 0xFFFFFF).toString(16)).substr(-6);
+            var color = "#" + cnum;
+            var name = streets[i][0];
+            if (markers[name] === undefined) {
+              var pos = new google.maps.LatLng(streets[i][1], streets[i][2]);
+              markers[name] = new google.maps.Marker({
+                position: pos, 
+                map: map, 
+                title: name, 
+                icon: {scale: 5, fillColor: color, fillOpacity: 1.0, strokeColor: color, path: google.maps.SymbolPath.CIRCLE}
+              });
+            } else {
+              markers[name].setIcon({scale: 5, fillColor: color, fillOpacity: 1.0, strokeColor: color, path: google.maps.SymbolPath.CIRCLE});
+            }
           }
       } else {
         console.log("error getting streets")
@@ -52,9 +71,13 @@ function initMap() {
   });
 
 }
+
+function getDistance(p1, p2) {
+  return google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+}
     </script>
     <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA32vHcaqlV25d0lKeaHvrtWDzXawxvu60&callback=initMap">
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA32vHcaqlV25d0lKeaHvrtWDzXawxvu60&callback=initMap&libraries=geometry">
     </script>
   </body>
 </html>
