@@ -5,7 +5,7 @@ import sys
 app = Flask(__name__)
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-socket.connect(("127.0.0.1", 4444))
+socket.connect(("128.199.56.127", 44446))
 sfile = socket.makefile()
 
 def send_request(req, obj):
@@ -39,8 +39,8 @@ def  login():
     key = user_login(user, passw)
     if key is not None:
         response = make_response(redirect(url_for("main")))
-        response.set_cookie("user", user, max_age=60)
-        response.set_cookie("key", key, max_age=60)
+        response.set_cookie("user", user, max_age=6000)
+        response.set_cookie("key", key, max_age=6000)
         return response
     return redirect(url_for("main"))
 

@@ -291,3 +291,9 @@ class UserManager:
     def get_online_users(self):
         c = self.db.execute("SELECT users.name, users.color FROM online_users INNER JOIN users ON online_users.userId=users.id")
         return c.fetchall()
+
+    def get_world_ranking(self):
+        c = self.db.execute("SELECT COUNT(streets.id) AS c, users.name, users.color FROM streets INNER JOIN users ON "
+                            "streets.userId=users.id GROUP BY streets.userId ORDER BY c DESC")
+        l = c.fetchall()
+        return l

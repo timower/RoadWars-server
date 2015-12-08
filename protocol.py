@@ -38,6 +38,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "stop-minigame":    [True,      ["user", "name", "street"],             self.stop_minigame],
             "ping":             [False,     [],                                     self.ping],
             "get-online-users": [True,      [],                                     self.get_online_users],
+            "get-world-ranking":[True,      [],                                     self.get_world_ranking],
         }
 
     def data_received(self, data):
@@ -200,3 +201,7 @@ class RoadWarsProtocol(asyncio.Protocol):
     def get_online_users(self, response):
         response["res"] = True
         response["users"] = usermgr.get_online_users()
+
+    def get_world_ranking(self,response):
+        response["res"] = True
+        response["rank"] = usermgr.get_world_ranking()
