@@ -314,4 +314,4 @@ class UserManager:
         proto = self._online_users[user]
         del self._online_users[user]
         self._online_users[name] = proto
-        return true
+        return True
