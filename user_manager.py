@@ -306,6 +306,7 @@ class UserManager:
             passhash = hashlib.sha1(passw.encode()).hexdigest()
             t = (name, passhash, email, color, user)
             c = self.db.execute("UPDATE users SET name=?, password=?, email=?, color=? WHERE name=?", t) 
+        self.db.commit()
         key = self.keys[user]
         del self.keys[user]
         self.keys[name] = key
@@ -313,3 +314,4 @@ class UserManager:
         proto = self._online_users[user]
         del self._online_users[user]
         self._online_users[name] = proto
+        return true
