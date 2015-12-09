@@ -307,11 +307,8 @@ class UserManager:
             t = (name, passhash, email, color, user)
             c = self.db.execute("UPDATE users SET name=?, password=?, email=?, color=? WHERE name=?", t) 
         self.db.commit()
-        key = self.keys[user]
-        del self.keys[user]
-        self.keys[name] = key
-        
-        proto = self._online_users[user]
-        del self._online_users[user]
-        self._online_users[name] = proto
+        if user in self.keys:
+            key = self.keys[user]
+            del self.keys[user]
+            self.keys[name] = key
         return True
