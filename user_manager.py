@@ -301,11 +301,11 @@ class UserManager:
     def change_user_info(self, user, name, passw, email, color):
         if passw == "":
             t = (name, email, color, user)
-            c = self.db.execute("UPDATE users SET name=?, email=?, color=? WHERE name=?") 
+            c = self.db.execute("UPDATE users SET name=?, email=?, color=? WHERE name=?", t) 
         else:
             passhash = hashlib.sha1(passw.encode()).hexdigest()
             t = (name, passhash, email, color, user)
-            c = self.db.execute("UPDATE users SET name=?, password=?, email=?, color=? WHERE name=?") 
+            c = self.db.execute("UPDATE users SET name=?, password=?, email=?, color=? WHERE name=?", t) 
         key = self.keys[user]
         del self.keys[user]
         self.keys[name] = key
