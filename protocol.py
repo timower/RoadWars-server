@@ -208,4 +208,5 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["rank"] = usermgr.get_world_ranking()
 
     def change_user_info(self, response, user, name, passw, email, color):
+        response["name"] = name
         response["res"] = usermgr.change_user_info(user, name, passw, email, color)
