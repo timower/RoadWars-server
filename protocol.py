@@ -13,32 +13,33 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.user_name = None
         self.request_table = {
             # request           check key?   requirements                            func
-            "login":            [False,     ["user", "pass"],                       self.login],
-            "logout":           [True,      ["user"],                               self.logout],
-            "check-login":      [True,      [],                                     self.check_login],
-            "create-user":      [False,     ["user", "pass", "email", "color"],     self.create_user],
-            "user-info":        [True,      ["user", "info-user"],                  self.user_info],
-            "street-rank":      [True,      ["street"],                             self.street_rank],
-            "get-points":       [True,      ["street", "user"],                     self.get_points], # unused ?
-            "get-all-points":   [True,      ["info-user"],                          self.get_all_points],
-            "add-points":       [True,      ["user", "street", "points"],           self.add_points],
-            "get-street":       [True,      ["street"],                             self.get_street],
-            "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"], self.get_all_streets],
-            "get-friends":      [True,      ["user"],                               self.get_friends],
-            "add-friend":       [True,      ["user", "name"],                       self.add_friend],
-            "get-all-users":    [True,      [],                                     self.get_all_users],
-            "get-friend-reqs":  [True,      ["user"],                               self.get_friend_reqs],
-            "accept-friend":    [True,      ["user", "name"],                       self.accept_friend],
-            "remove-friend":    [True,      ["user", "name"],                       self.remove_friend],
-            "remove-friend-req":[True,      ["user", "name"],                       self.remove_friend_req],
-            "get-unknown-users":[True,      ["user"],                               self.get_unknown_users],
-            "nfc-friend":       [True,      ["user", "name"],                       self.nfc_friend],
-            "start-minigame":   [True,      ["user", "name", "street"],             self.start_minigame],
-            "finish-minigame":  [True,      ["user", "name", "street"],             self.finished_minigame],
-            "stop-minigame":    [True,      ["user", "name", "street"],             self.stop_minigame],
-            "ping":             [False,     [],                                     self.ping],
-            "get-online-users": [True,      [],                                     self.get_online_users],
-            "get-world-ranking":[True,      [],                                     self.get_world_ranking],
+            "login":            [False,     ["user", "pass"],                           self.login],
+            "logout":           [True,      ["user"],                                   self.logout],
+            "check-login":      [True,      [],                                         self.check_login],
+            "create-user":      [False,     ["user", "pass", "email", "color"],         self.create_user],
+            "user-info":        [True,      ["user", "info-user"],                      self.user_info],
+            "street-rank":      [True,      ["street"],                                 self.street_rank],
+            "get-points":       [True,      ["street", "user"],                         self.get_points], # unused ?
+            "get-all-points":   [True,      ["info-user"],                              self.get_all_points],
+            "add-points":       [True,      ["user", "street", "points"],               self.add_points],
+            "get-street":       [True,      ["street"],                                 self.get_street],
+            "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"],     self.get_all_streets],
+            "get-friends":      [True,      ["user"],                                   self.get_friends],
+            "add-friend":       [True,      ["user", "name"],                           self.add_friend],
+            "get-all-users":    [True,      [],                                         self.get_all_users],
+            "get-friend-reqs":  [True,      ["user"],                                   self.get_friend_reqs],
+            "accept-friend":    [True,      ["user", "name"],                           self.accept_friend],
+            "remove-friend":    [True,      ["user", "name"],                           self.remove_friend],
+            "remove-friend-req":[True,      ["user", "name"],                           self.remove_friend_req],
+            "get-unknown-users":[True,      ["user"],                                   self.get_unknown_users],
+            "nfc-friend":       [True,      ["user", "name"],                           self.nfc_friend],
+            "start-minigame":   [True,      ["user", "name", "street"],                 self.start_minigame],
+            "finish-minigame":  [True,      ["user", "name", "street"],                 self.finished_minigame],
+            "stop-minigame":    [True,      ["user", "name", "street"],                 self.stop_minigame],
+            "ping":             [False,     [],                                         self.ping],
+            "get-online-users": [True,      [],                                         self.get_online_users],
+            "get-world-ranking":[True,      [],                                         self.get_world_ranking],
+            "change-user-info": [True,      ["user", "name", "pass", "email", "color"], self.change_user_info],
         }
 
     def data_received(self, data):
@@ -205,3 +206,7 @@ class RoadWarsProtocol(asyncio.Protocol):
     def get_world_ranking(self,response):
         response["res"] = True
         response["rank"] = usermgr.get_world_ranking()
+
+    def change_user_info(self, response, user, name, passw, email, color):
+        response["name"] = name
+        response["res"] = usermgr.change_user_info(user, name, passw, email, color)
