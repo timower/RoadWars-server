@@ -210,3 +210,5 @@ class RoadWarsProtocol(asyncio.Protocol):
     def change_user_info(self, response, user, name, passw, email, color):
         response["name"] = name
         response["res"] = usermgr.change_user_info(user, name, passw, email, color)
+        if response["res"]:
+            self.user_name = name

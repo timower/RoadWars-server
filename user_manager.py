@@ -18,17 +18,19 @@ class UserManager:
     def online_user(self, user, protocol):
         if user not in self._online_users:
             t = (user,)
-            self.db.execute("INSERT INTO online_users (userId, userName) SELECT id, name FROM users WHERE name=?", t)
+            self.db.execute("INSERT INTO online_users (userId) SELECT id FROM users WHERE name=?", t)
         if user in self._delayed_responses:
             protocol.respond(self._delayed_responses[user])
             del self._delayed_responses[user]
         self._online_users[user] = protocol
+        print("user " + user + " is online")
        #self.db.commit()
 
     def offline_user(self, user):
         del self._online_users[user]
         t = (user,)
-        self.db.execute("DELETE FROM online_users WHERE userName=?", t)
+        self.db.execute("DELETE FROM online_users WHERE userId=(SELECT id FROM users WHERE name=?)", t)
+        print("user " + user + " is offline")
         #self.db.commit()
 
     def create_user(self, user, pasw, email, color=None):
