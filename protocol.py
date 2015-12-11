@@ -211,4 +211,6 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["name"] = name
         response["res"] = usermgr.change_user_info(user, name, passw, email, color)
         if response["res"]:
+            usermgr.offline_user(user)
             self.user_name = name
+            usermgr.online_user(name, self)
