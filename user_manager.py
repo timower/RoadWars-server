@@ -191,8 +191,13 @@ class UserManager:
 
     def get_friends(self, user):
         t = (user,)
-        c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id "
-                            "WHERE friends.senderId=(SELECT id FROM users WHERE name = ?) AND friends.status=1", t)
+        c = self.db.execute("SELECT users.name, users.color, COUNT(streets.userId) AS c "
+                            "FROM users LEFT JOIN streets ON streets.userId=users.id "
+                            "INNER JOIN friends ON friends.senderId=users.id WHERE "
+                            "friends.receiverId=(SELECT id FROM users WHERE name = ?) "
+                            "GROUP BY users.id ORDER BY c DESC", t)
+        #c = self.db.execute("SELECT users.name, users.color FROM users INNER JOIN friends ON friends.receiverId=users.id "
+        #                    "WHERE friends.senderId=(SELECT id FROM users WHERE name = ?) AND friends.status=1", t)
         return c.fetchall()
 
     def add_friend(self, user, name):
