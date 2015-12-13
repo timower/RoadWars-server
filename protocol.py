@@ -7,7 +7,7 @@ usermgr = None
 # {"req": "login", "user": "<user name>", "pass": "password"}
 class RoadWarsProtocol(asyncio.Protocol):
 
-    TIMEOUT = 2*60.0
+    TIMEOUT = 20.0
 
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
