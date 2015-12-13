@@ -27,9 +27,10 @@ class UserManager:
        #self.db.commit()
 
     def offline_user(self, user):
-        del self._online_users[user]
-        t = (user,)
-        self.db.execute("DELETE FROM online_users WHERE userId=(SELECT id FROM users WHERE name=?)", t)
+        if user in self._online_users:
+            del self._online_users[user]
+            t = (user,)
+            self.db.execute("DELETE FROM online_users WHERE userId=(SELECT id FROM users WHERE name=?)", t)
         print("user " + user + " is offline")
         #self.db.commit()
 
