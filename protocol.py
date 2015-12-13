@@ -6,6 +6,9 @@ usermgr = None
 
 # {"req": "login", "user": "<user name>", "pass": "password"}
 class RoadWarsProtocol(asyncio.Protocol):
+
+    TIMEOUT = 2*60.0
+
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(self.peername))
@@ -42,7 +45,13 @@ class RoadWarsProtocol(asyncio.Protocol):
             "change-user-info": [True,      ["user", "name", "pass", "email", "color"], self.change_user_info],
         }
 
+        self.h_timeout = asyncio.get_event_loop().call_later(self.TIMEOUT, self.timeout)
+
     def data_received(self, data):
+
+        self.h_timeout.cancel()
+        self.h_timeout = asyncio.get_event_loop().call_later(self.TIMEOUT, self.timeout)
+
         message = data.decode()
         print("received: " + message)
         obj = json.loads(message)
@@ -84,7 +93,14 @@ class RoadWarsProtocol(asyncio.Protocol):
     def connection_lost(self, exc):
         if self.user_name is not None:
             usermgr.offline_user(self.user_name)
-        print('Connection lost from {}'.format(self.peername))
+        self.h_timeout.cancel()
+        print('Connection lost from {}, {}'.format(self.user_name, self.peername))
+
+    def timeout(self):
+        if self.user_name is not None:
+            usermgr.offline_users(self.user_name)
+        self.transport.close()
+        print('User: {} timed out'.format(self.user_name))
 
     def respond(self, obj):
         st = json.dumps(obj)
