@@ -98,7 +98,7 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def timeout(self):
         if self.user_name is not None:
-            usermgr.offline_users(self.user_name)
+            usermgr.offline_user(self.user_name)
         self.transport.close()
         print('User: {} timed out'.format(self.user_name))
 
