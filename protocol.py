@@ -24,6 +24,7 @@ class RoadWarsProtocol(asyncio.Protocol):
             "street-rank":      [True,      ["street"],                                 self.street_rank],
             "get-points":       [True,      ["street", "user"],                         self.get_points], # unused ?
             "get-all-points":   [True,      ["info-user"],                              self.get_all_points],
+            "get-all-points2":  [True,      ["info-user"],                              self.get_all_points_new],
             "add-points":       [True,      ["user", "street", "points"],               self.add_points],
             "get-street":       [True,      ["street"],                                 self.get_street],
             "get-all-streets":  [True,      ["neLat", "neLong", "swLat", "swLong"],     self.get_all_streets],
@@ -154,6 +155,10 @@ class RoadWarsProtocol(asyncio.Protocol):
     def get_all_points(self, response, info_user):
         response["res"] = True
         response["points"] = usermgr.get_all_points(info_user)
+
+    def get_all_points_new(self, response, info_user):
+        response["res"] = True
+        response["points"] = usermgr.get_all_points_new(info_user)
 
     def add_points(self, response, user, street, points):
         if points != 0:
