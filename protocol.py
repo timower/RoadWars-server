@@ -53,8 +53,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         self.h_timeout = asyncio.get_event_loop().call_later(self.TIMEOUT, self.timeout)
 
         message = data.decode()
-        print("received: " + message)
         obj = json.loads(message)
+        print("received: " + str({k: v if k != 'pass' else '****' for k, v in obj.items()}))
 
         response = {"res": False}
 
