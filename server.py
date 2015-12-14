@@ -10,7 +10,7 @@ if __name__ == '__main__':
     protocol.usermgr = UserManager(db, gmaps)
 
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(protocol.RoadWarsProtocol, '0.0.0.0', 4444)
+    coro = loop.create_server(protocol.RoadWarsProtocol, '0.0.0.0', 44446)
     server = loop.run_until_complete(coro)
 
     # Serve requests until Ctrl+C is pressed
