@@ -7,7 +7,7 @@ usermgr = None
 # {"req": "login", "user": "<user name>", "pass": "password"}
 class RoadWarsProtocol(asyncio.Protocol):
 
-    TIMEOUT = 20.0
+    TIMEOUT = 60.0
 
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
@@ -97,9 +97,8 @@ class RoadWarsProtocol(asyncio.Protocol):
         print('Connection lost from {}, {}'.format(self.user_name, self.peername))
 
     def timeout(self):
-        if self.user_name is not None:
-            usermgr.offline_user(self.user_name)
         self.transport.write_eof()
+        # calls connection_lost(None):
         self.transport.close()
         print('User: {} timed out'.format(self.user_name))
 

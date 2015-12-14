@@ -16,12 +16,16 @@ class UserManager:
         self.db.commit()
 
     def online_user(self, user, protocol):
-        if user not in self._online_users:
+        try:
             t = (user,)
             self.db.execute("INSERT INTO online_users (userId) SELECT id FROM users WHERE name=?", t)
+        except sqlite3.IntegrityError as _:
+            pass
+
         if user in self._delayed_responses:
             protocol.respond(self._delayed_responses[user])
             del self._delayed_responses[user]
+
         self._online_users[user] = protocol
         print("user " + user + " is online")
        #self.db.commit()
@@ -29,8 +33,9 @@ class UserManager:
     def offline_user(self, user):
         if user in self._online_users:
             del self._online_users[user]
-            t = (user,)
-            self.db.execute("DELETE FROM online_users WHERE userId=(SELECT id FROM users WHERE name=?)", t)
+            
+        t = (user,)
+        self.db.execute("DELETE FROM online_users WHERE userId=(SELECT id FROM users WHERE name=?)", t)
         print("user " + user + " is offline")
         #self.db.commit()
 
