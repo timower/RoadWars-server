@@ -93,9 +93,9 @@ class RoadWarsProtocol(asyncio.Protocol):
     def connection_lost(self, exc):
         if self.user_name is not None:
             usermgr.offline_user(self.user_name)
-            self.user_name = None
         self.h_timeout.cancel()
         print('Connection lost from {}, {}'.format(self.user_name, self.peername))
+        self.user_name = None
 
     def timeout(self):
         self.transport.write_eof()

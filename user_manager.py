@@ -180,7 +180,7 @@ class UserManager:
 
     def get_all_points(self, user):
         t = (user,)
-        c = self.db.execute("SELECT streets.name, points.points FROM points INNER JOIN streets ON"
+        c = self.db.execute("SELECT streets.name, points.points, streets.userId==users.id FROM points INNER JOIN streets ON"
                             " points.streetId=streets.id INNER JOIN users ON points.userId=users.id WHERE "
                             "users.name=? ORDER BY points.points DESC", t)
         l = c.fetchall()
