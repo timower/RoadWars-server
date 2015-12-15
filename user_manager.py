@@ -199,7 +199,7 @@ class UserManager:
         c = self.db.execute("SELECT streets.name, streets.lat, streets.long, users.color FROM streets INNER JOIN users "
                             "ON streets.userId=users.id INNER JOIN points ON streets.id=points.streetId AND"
                             " users.id=points.userId WHERE streets.lat < ? AND streets.long < ? AND streets.lat > ? AND"
-                            " streets.long > ? ORDER BY points.points DESC LIMIT 10", t)
+                            " streets.long > ? ORDER BY points.points DESC LIMIT 30", t)
         l = c.fetchall()
         return l
 
