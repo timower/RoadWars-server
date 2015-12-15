@@ -130,7 +130,10 @@ class RoadWarsProtocol(asyncio.Protocol):
         response["res"] = True
 
     def create_user(self, response, user, passw, email, color):
-        response["res"] = usermgr.create_user(user, passw, email, color)
+        if len(user) > 15:
+            response["res"] = False
+        else:
+            response["res"] = usermgr.create_user(user, passw, email, color)
 
     def user_info(self, response, user, info_user):
         info = usermgr.get_info(user, info_user)
@@ -231,7 +234,11 @@ class RoadWarsProtocol(asyncio.Protocol):
 
     def change_user_info(self, response, user, name, passw, email, color):
         response["name"] = name
-        response["res"] = usermgr.change_user_info(user, name, passw, email, color)
+        if len(name) > 15:
+            response["res"] = False
+        else:
+            response["res"] = usermgr.change_user_info(user, name, passw, email, color)
+
         if response["res"]:
             usermgr.offline_user(user)
             self.user_name = name
